@@ -1,3 +1,4 @@
+/* $Id$ */
 #ifndef MODEM_INFO_H
 #define MODEM_INFO_H
 

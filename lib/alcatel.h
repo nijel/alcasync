@@ -21,6 +21,7 @@
  * permission from author of this code.                                      *
  *                                                                           *
  *****************************************************************************/
+/* $Id$ */
 
 #ifndef ALCATEL_H
 #define ALCATEL_H

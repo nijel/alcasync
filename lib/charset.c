@@ -1,3 +1,4 @@
+/* $Id$ */
 #include "charset.h"
 
 #define noc 183 

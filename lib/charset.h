@@ -1,3 +1,4 @@
+/* $Id$ */
 #ifndef CHARSET_H
 #define CHARSET_H
 

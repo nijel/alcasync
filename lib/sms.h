@@ -1,3 +1,4 @@
+/* $Id$ */
 #ifndef SMS_H
 #define SMS_H
 #include <time.h>
