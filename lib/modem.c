@@ -174,6 +174,8 @@ void modem_init() {
     char command[100];
     char answer[500];
 
+    tcflush(modem, TCIOFLUSH);
+
     message(MSG_INFO,"Initializing modem");
 	modem_cmd("\r\nAT\033\032\r\n",answer,sizeof(answer),0,NULL);/* ESCAPE, CTRL-Z */
 	

@@ -150,4 +150,5 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item);
 int sync_create_obj_list_item(alc_type type, alc_type list, char *item);
 void sync_commit(alc_type type);
 void sync_del_obj_list_items(alc_type type, alc_type list);
+void sync_update_field(alc_type type, int item, int field, FIELD *data);
 #endif

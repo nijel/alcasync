@@ -12,6 +12,7 @@
  *  - 0x0F ack doesn't mean anything important                               *
  *  - data will be recieved as they are expected                             *
  *  - no error will appear in transmission                                   *
+ *  - all string are given in form that works in mobile and also in C        *
  *  - all magic numbers mean that, what I thing that they mean ;-)           *
  *                                                                           *
  * This program is  free software; you can  redistribute it and/or modify it *
@@ -621,4 +622,84 @@ void sync_commit(alc_type type) {
         free(alcatel_recv_packet(1));
     }
     free(data);
+}
+
+void sync_update_field(alc_type type, int item, int field, FIELD *data) {
+    alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 
+        0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
+    
+    switch (data->type) {
+        case _date:
+            buffer[10] = 0x09;
+            buffer[13] = 0x05;
+            buffer[14] = 0x67;
+            buffer[15] = 0x04;
+            buffer[16] = ((DATE *)(data->data))->month;
+            buffer[17] = ((DATE *)(data->data))->day;
+            buffer[18] = ((DATE *)(data->data))->year >> 8;
+            buffer[19] = ((DATE *)(data->data))->year & 0xff;
+            buffer[20] = 0x00;
+            break;
+        case _time:
+            buffer[10] = 0x08;
+            buffer[13] = 0x06;
+            buffer[14] = 0x68;
+            buffer[15] = 0x03;
+            buffer[16] = ((TIME *)(data->data))->hour;
+            buffer[17] = ((TIME *)(data->data))->minute; 
+            buffer[18] = ((TIME *)(data->data))->second;
+            buffer[19] = 0x00;
+            break;
+        case _string:
+            buffer[13] = 0x08;
+            buffer[14] = 0x3c;
+            strncpy(buffer + 16, (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[15] = strlen(buffer + 16);
+            buffer[10] = 5 + buffer[15];
+            buffer[16 + buffer[15]] = 0x00;
+            break;
+        case _phone:
+            buffer[13] = 0x07;
+            buffer[14] = 0x3c;
+            strncpy(buffer + 16, (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[15] = strlen(buffer + 16);
+            buffer[10] = 5 + buffer[15];
+            buffer[16 + buffer[15]] = 0x00;
+            break;
+        case _enum:
+            buffer[10] = 0x05;
+            buffer[13] = 0x04;
+            buffer[14] = 0x38;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
+            break;
+        case _bool:
+            buffer[10] = 0x05;
+            buffer[13] = 0x03;
+            buffer[14] = 0x3b;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
+            break;
+        case _int:
+            buffer[10] = 0x08;
+            buffer[13] = 0x02;
+            buffer[14] = 0x3a;
+            buffer[15] = *(int *)(data->data) >> 24;
+            buffer[16] = (*(int *)(data->data) >> 16) & 0xff;
+            buffer[17] = (*(int *)(data->data) >> 8) & 0xff;
+            buffer[18] = *(int *)(data->data) & 0xff;
+            buffer[19] = 0x00;
+            break;
+        case _byte:
+            buffer[10] = 0x05;
+            buffer[13] = 0x00;
+            buffer[14] = 0x38;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
+            break;
+    }
+
+    alcatel_send_packet(ALC_DATA, buffer, 12 + buffer[10]); 
+    free(alcatel_recv_ack(ALC_ACK));
+    free(alcatel_recv_packet(1));
 }

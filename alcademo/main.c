@@ -639,6 +639,12 @@ void write_message() {
 }
 
 void test() {
+    FIELD field;
+    char test[] = "TEST";
+
+    field.type = _string;
+    field.data = test;
+
     alcatel_attach();
 
     sync_start_session();
@@ -646,6 +652,7 @@ void test() {
     sync_select_type(ALC_SYNC_TYPE_TODO);
     sync_begin_read(ALC_SYNC_TODO);
 
+    sync_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
 //    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
 
     sync_commit(ALC_SYNC_TYPE_TODO);
