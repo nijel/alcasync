@@ -197,6 +197,8 @@ int modem_init(void) {
     message(MSG_INFO,"Initializing modem");
 
     write(modem, "\r", 1);
+    write(modem, "A", 1);
+    write(modem, "T", 1);
     usleep(SLEEP_INIT);
 
     while (read(modem, answer, sizeof(command) - 1) > 0)
