@@ -203,3 +203,11 @@ char *get_smsc(void) {
 	
     return t;
 }
+
+void set_smsc(char *smsc) {
+    char command[100];
+    char answer[500];
+    message(MSG_INFO,"Changing SMSC");
+    sprintf(command,"AT+CSCA=\"+%s\"\r\n",smsc);
+    modem_cmd(command,answer,sizeof(answer),100,0);
+}

@@ -52,5 +52,6 @@ int send_sms(char *pdu);
 int put_sms(char *pdu, int state);
 
 char *get_smsc(void);
+void set_smsc(char *smsc);
 
 #endif

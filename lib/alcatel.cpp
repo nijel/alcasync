@@ -507,6 +507,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         
         field->type = _string;
         field->data = s;
+        message(MSG_DEBUG,"Decoded string: %s", s);
     } else if (buffer[1] == 0x07 && buffer[2] == 0x3C) {
         /* phone */
         s = (alc_type *)malloc(buffer[3]+1);
@@ -692,7 +693,7 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
             buffer[14] = 0x3c;
             strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars */
             buffer[15] = strlen((char *)(buffer + 16));
-            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = gsm2ascii(buffer[16 + j]);
+            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
             buffer[10] = 5 + buffer[15];
             buffer[16 + buffer[15]] = 0x00;
             break;
@@ -701,7 +702,7 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
             buffer[14] = 0x3c;
             strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
             buffer[15] = strlen((char *)(buffer + 16));
-            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = gsm2ascii(buffer[16 + j]);
+            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
             buffer[10] = 5 + buffer[15];
             buffer[16 + buffer[15]] = 0x00;
             break;

@@ -43,7 +43,7 @@ char charset[128] = {'@' , 163 , '$' , 165 , 232 , 233 , 249 , 236 ,
 					 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' , 'o' ,
 					 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' ,
 					 'x' , 'y' , 'z' , 228 , 246 , 241 , 252 , 224 };
-		      
+					 		
 char ascii2gsm(const char c) {
     char found='*'; // replacement for nonexistent characters
     int i;
@@ -59,3 +59,4 @@ char ascii2gsm(const char c) {
 char gsm2ascii(const char c) {
     return charset[(int)c];
 }
+

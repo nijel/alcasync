@@ -243,14 +243,6 @@ int modem_init(void) {
     return 1;
 }
 
-void modem_set_smsc(char *smsc) {
-    char command[100];
-    char answer[500];
-    message(MSG_INFO,"Changing SMSC");
-    sprintf(command,"AT+CSCA=\"+%s\"\r\n",smsc);
-    modem_cmd(command,answer,sizeof(answer),100,0);
-}
-
 int modem_open(void) {
     int pid, i;
     FILE *lock;
