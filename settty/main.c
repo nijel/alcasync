@@ -1,7 +1,7 @@
 /*
  * settty/main.c
  *
- * set for setting tty
+ * program for setting tty parameters
  *
  * Copyright (c) 2002 by Michal Cihar <cihar@email.cz>
  *

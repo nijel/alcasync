@@ -1,0 +1,17 @@
+AlcaSync
+========
+
+This is a library for synchronisation with Alcatel 50x/70x mobiles. This
+package also contains some samples how to use it. For more complex samples
+have a look at KAlcatel application.
+
+Subdirectories
+==============
+
+This tarball should contain following subdirectories:
+
+alcademo - demo application for AlcaSync
+alcatest - test application, used for examining protocol
+lib      - AlcaSync library
+settty   - tool for setting tty device parameters, it is probably useless for
+           you, but I'm too lazy to remove it when creating tarball
