@@ -353,7 +353,7 @@ static const struct option longopts[]={
     }
 
     if (optind < argc) {
-        extra_params = malloc(MIN((argc - optind),wanted_extra_params) * sizeof(char *));
+        extra_params = (char **)malloc(MIN((argc - optind),wanted_extra_params) * sizeof(char *));
         i = 0;
         while ((optind + i)< argc) {
             extra_params[i] = argv[optind + i];
@@ -421,7 +421,7 @@ void create_alc_cat(alc_type sync, alc_type type, alc_type cat, char *name) {
 void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     int *list;
     int i;
-    alc_type *result;
+    char *result;
 
     alcatel_attach();
 

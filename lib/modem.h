@@ -1,19 +1,25 @@
-/***************************************************************************
-                          modem.h  -  description
-                             -------------------
-    begin                : Thu Jan 24 2002
-    copyright            : (C) 2002 by Michal Cihar
-    email                : cihar@email.cz
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+/*
+ * alcatool/modem.h
+ *
+ * modem initialization, commands and closing
+ *
+ * Copyright (c) 2002 by Michal Cihar <cihar@email.cz>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * In addition to GNU GPL this code may be used also in non GPL programs but
+ * if and only if programmer/distributor of that code recieves written
+ * permission from author of this code.
+ *
+ */
 /* $Id$ */
 #ifndef MODEM_H
 #define MODEM_H
@@ -25,20 +31,20 @@
 #define ERR_MDM_LOCK    3
 #define ERR_MDM_OPEN    4
 
-int modem_errno;
+extern int modem_errno;
 
-int modem;
-int rate;
+//int modem;
+extern int rate;
+extern int baudrate;
 
-int baudrate;
-char device[100];
-char lockname[100];
-char initstring[100];
+extern char device[100];
+extern char lockname[100];
+extern char initstring[100];
 //char initstring[100]="AT S7=45 S0=0 L1 V1 X4 &c1 E1 Q0";
 //char modemname[100];
 //char smsc[100];
-char mode[10];
-struct termios oldtio;
+//char mode[10];
+//struct termios oldtio;
 
 /* write command to modem and wait for answer until:
      1. timeout is reached

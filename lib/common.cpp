@@ -1,7 +1,7 @@
 /*
- * alcatool/sms.h
+ * alcatool/common.cpp
  *
- * sms reading/writing functions
+ * some common functions
  *
  * Copyright (c) 2002 by Michal Cihar <cihar@email.cz>
  *
@@ -21,36 +21,23 @@
  *
  */
 /* $Id$ */
-#ifndef SMS_H
-#define SMS_H
-#include <time.h>
+#include <stdio.h>
 
-#define SMS_UNREAD  0
-#define SMS_READ    1
-#define SMS_UNSENT  2
-#define SMS_SENT    3
-#define SMS_ALL     4
+#include "common.h"
+#include "logging.h"
 
-typedef struct {
-    int pos;
-    int stat;
-    int len;
-    char* raw;
-    char* sendr;
-    time_t date;
-    char* ascii;
-    char* smsc;
-} SMS;
+int is_number(const char* const text) {
+    int i;
+    int Length;
+    Length=strlen(text);
+    for (i=0; i<Length; i++)
+        if (((text[i]>'9') || (text[i]<'0')) && (text[i]!='-'))
+            return 0;
+    return 1;
+}
 
-
-int delete_sms(int which);
-
-SMS *get_sms(int which);
-SMS *get_smss(int state = SMS_ALL);
-
-int send_sms(char *pdu);
-int put_sms(char *pdu, int state);
-
-char *get_smsc(void);
-
-#endif
+void chk(const void *p) {
+    if (p) return;
+    message(MSG_ERROR,"Virtual memory exhausted");
+    exit(100);
+}

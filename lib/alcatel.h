@@ -1,26 +1,38 @@
-/*****************************************************************************
- * lib/alcatel.h - low level functions for  communication with  Alcatel  One *
- *                 Touch 501 and compatible mobile phone                     *
- *                                                                           *
- * Copyright (c) 2002 Michal Cihar <cihar at email dot cz>                   *
- *                                                                           *
- * This is just header file, for details see alcatel.c                       *
- *                                                                           *
- * This program is  free software; you can  redistribute it and/or modify it *
- * under the terms of the  GNU  General  Public  License as published by the *
- * Free  Software  Foundation; either  version 2 of the License, or (at your *
- * option) any later version.                                                *
- *                                                                           *
- * This code is distributed in the hope that it will  be useful, but WITHOUT *
- * ANY  WARRANTY; without even the  implied  warranty of  MERCHANTABILITY or *
- * FITNESS FOR A  PARTICULAR PURPOSE. See the GNU General Public License for *
- * more details.                                                             *
- *                                                                           *
- * In addition to GNU GPL this code may be used also in non GPL programs but *
- * if and  only if  programmer/distributor  of that  code  recieves  written *
- * permission from author of this code.                                      *
- *                                                                           *
- *****************************************************************************/
+/*
+ * alcatool/alcatel.h
+ *
+ * low level functions for communication with Alcatel One Touch 501 and
+ * compatible mobile phone
+ *
+ * NOTE:
+ * This is EXPERIMANTAL implementation of comunication protocol used by
+ * Alcatel 501 (probably also any 50x and 70x) mobile phone. This code may
+ * destroy your phone, so use it carefully. However whith my phone works this
+ * code correctly. This code assumes following conditions:
+ *  - no packet is lost
+ *  - 0x0F ack doesn't mean anything important
+ *  - data will be recieved as they are expected
+ *  - no error will appear in transmission
+ *  - all string are given in form that works in mobile and also in C
+ *  - all magic numbers mean that, what I thing that they mean ;-)
+ *
+ * Copyright (c) 2002 by Michal Cihar <cihar@email.cz>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * In addition to GNU GPL this code may be used also in non GPL programs but
+ * if and only if programmer/distributor of that code recieves written
+ * permission from author of this code.
+ *
+ */
 /* $Id$ */
 
 #ifndef ALCATEL_H
