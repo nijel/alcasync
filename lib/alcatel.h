@@ -1,6 +1,6 @@
 /*****************************************************************************
- * alcatel.h - low level functions for communication with  Alcatel One Touch *
- *             501 and compatible mobile phone                               *
+ * lib/alcatel.h - low level functions for  communication with  Alcatel  One *
+ *                 Touch 501 and compatible mobile phone                     *
  *                                                                           *
  * Copyright (c) 2002 Michal Cihar <cihar at email dot cz>                   *
  *                                                                           *
@@ -60,6 +60,11 @@
 
 /* type used for I/O with mobile */
 #define alc_type            unsigned char
+
+/* size of arrays with names */
+#define ALC_CONTACTS_FIELDS 25
+#define ALC_CALENDAR_FIELDS 22
+#define ALC_TODO_FIELDS     9
 
 /* types of return values */
 typedef enum {

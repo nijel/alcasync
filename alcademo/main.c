@@ -1,19 +1,33 @@
-/***************************************************************************
-                          alctest.c  -  description
-                             -------------------
-    begin                : Thu Jan 24 20:23:34 CET 2002
-    copyright            : (C) 2002 by Michal Cihar
-    email                : cihar@email.cz
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+/*****************************************************************************
+ * alctest/main.c - testing program for alcatel communication library        *
+ *                                                                           *
+ * Copyright (c) 2002 Michal Cihar <cihar at email dot cz>                   *
+ *                                                                           *
+ * This is  EXPERIMANTAL  implementation  of comunication  protocol  used by *
+ * Alcatel  501 (probably also any 50x and 70x) mobile phone. This  code may *
+ * destroy your phone, so use it carefully. However whith my phone work this *
+ * code correctly. This code assumes following conditions:                   *
+ *  - no packet is lost                                                      *
+ *  - 0x0F ack doesn't mean anything important                               *
+ *  - data will be recieved as they are expected                             *
+ *  - no error will appear in transmission                                   *
+ *  - all magic numbers mean that, what I thing that they mean ;-)           *
+ *                                                                           *
+ * This program is  free software; you can  redistribute it and/or modify it *
+ * under the terms of the  GNU  General  Public  License as published by the *
+ * Free  Software  Foundation; either  version 2 of the License, or (at your *
+ * option) any later version.                                                *
+ *                                                                           *
+ * This code is distributed in the hope that it will  be useful, but WITHOUT *
+ * ANY  WARRANTY; without even the  implied  warranty of  MERCHANTABILITY or *
+ * FITNESS FOR A  PARTICULAR PURPOSE. See the GNU General Public License for *
+ * more details.                                                             *
+ *                                                                           *
+ * In addition to GNU GPL this code may be used also in non GPL programs but *
+ * if and  only if  programmer/distributor  of that  code  recieves  written *
+ * permission from author of this code.                                      *
+ *                                                                           *
+ *****************************************************************************/
 /* $Id$ */
 
 #include <stdio.h>
@@ -53,11 +67,18 @@ int action_del[1000];
 int action_del_pos = 0;
 int action_list = 0;
 int action_implicit_list = 0;
-int action_contact = 0;
+int action_contacts = 0;
+int action_contacts_cat = 0;
+int action_todo = 0;
+int action_todo_cat = 0;
+int action_calendar = 0;
 
 int action_test = 0;
 
 int binary_mode_active = 0;
+extern char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20],
+            alc_calendar_field_names[ALC_CALENDAR_FIELDS][20],
+            alc_todo_field_names[ALC_TODO_FIELDS][20];
 
 void help() {
     printf("This is " NAME " version " VERSION " Copyright (c) " COPYRIGHT "\n");
@@ -70,12 +91,23 @@ void help() {
     printf("    -q/--quiet ... be more quiet\n");
     printf("    -v/--verbose ... be more verbose\n");
 //    printf("    - ...  [%s]\n",default_);
+
     printf("Actions (at least one MUST be specified):\n");
     printf("    -i/--info ... show mobile info\n");
     printf("    -s[(n)]/--sms[=(n)] ... list SMSs / show selected SMS\n");
 //    printf("    -c/--contacts ... list contacts\n");
     printf("    -S/--monitor ... monitor signal strength\n");
 //    printf("    - \n");
+    printf("    -b/--binary ... enable binary (Alcatel) mode\n");
+    
+    printf("Binary subactions (at least one should be specified, otherwise just enter and leave binary mode):\n");
+    printf("    -c/--contacts ... list contacts\n");
+    printf("    -a/--calendar ... list calendar entries\n");
+    printf("    -t/--todo ... list todo entries\n");
+    printf("    -T/--todo-cat ... list todo categories\n");
+    printf("    -C/--contacts-cat ... list contacts categories\n");
+    
+    printf("Help and simmilar:\n");
     printf("    -V/--version ... show version information\n");
     printf("    -h/--help ... this help\n");
     printf("Used symbols:\n");
@@ -121,9 +153,17 @@ static const struct option longopts[]={
 {"monitor"     ,0,0,'S'},
 {"sms"         ,2,0,'s'},
 
+{"binary"      ,1,0,'b'},
+    
 {"read"        ,1,0,'r'},
 {"delete"      ,1,0,'x'},
 {"list"        ,0,0,'l'},
+
+{"contacts"    ,0,0,'c'},
+{"calendar"    ,0,0,'a'},
+{"todo"        ,0,0,'t'},
+{"todo-cat"    ,0,0,'T'},
+{"contacts-cat",0,0,'C'},
 
 {"rate"        ,1,0,'B'},
 {"init"        ,1,0,'I'},
@@ -147,8 +187,25 @@ static const struct option longopts[]={
     strcpy(initstring,default_init);
     rate=default_rate;
 
-    while ((result=getopt_long(argc,argv,"bhd:K:I:B:is::cSvqVr:x:lT",longopts,NULL))>0) {
+    while ((result=getopt_long(argc,argv,"bcatCThd:K:I:B:is::SvqVr:x:lT",longopts,NULL))>0) {
         switch (result) {
+            case 'c':
+                action_any = 1;      /* contacts can be standalone - read from sim */
+                action_contacts = 1;
+                break;;
+            case 'a':
+                action_calendar = 1;
+                break;;
+            case 't':
+                action_todo = 1;
+                break;;
+            case 'C':
+                action_contacts_cat = 1;
+                break;;
+            case 'T':
+                action_todo_cat = 1;
+                break;;
+
             case 'V': 
                 version(); 
                 break;;
@@ -174,17 +231,12 @@ static const struct option longopts[]={
             case 'B':
                 rate = atoi(optarg);
                 break;
-            case 'T':
-                action_any = 1;
-                action_test = 1;
-                break;
             case 'i':
                 action_any = 1;
                 action_info = 1;
                 break;
             case 'l':
                 action_list = 1;
-                action_any = 1;
                 break;
             case 's':
                 action_any = 1;
@@ -204,10 +256,6 @@ static const struct option longopts[]={
             case 'b':
                 action_any = 1;
                 action_binary = 1;
-                break;
-            case 'c':
-                action_any = 1;
-                action_contact = 1;
                 break;
             case 'S':
                 action_monitor = 1;
@@ -250,21 +298,142 @@ void shutdown() {
 }
 
 void print_hex(char *buffer) {
-	static char conv[] = "0123456789ABCDEF";
-	int i;
-	for (i=1; i<=buffer[0]; i++)
-		printf ("%c%c (%c) ", conv[((char)buffer[i] & 0xff) >> 4], conv[buffer[i] & 0x0f], isprint(buffer[i])?buffer[i]:'*');
+    static char conv[] = "0123456789ABCDEF";
+    int i;
+    for (i=1; i<=buffer[0]; i++)
+        printf ("%c%c (%c) ", conv[((char)buffer[i] & 0xff) >> 4], conv[buffer[i] & 0x0f], isprint(buffer[i])?buffer[i]:'*');
+}
+
+void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
+    int *list;
+    int i;
+    alc_type *result;
+
+    alcatel_attach();
+
+    sync_start_session();
+
+    sync_select_type(type);
+    sync_begin_read(sync);
+
+    list = sync_get_obj_list(type, cat);
+    
+    message(MSG_INFO, "Received %d categories:", list[0]);
+
+    for (i = 1; i <= list[0]; i++) {
+        result = sync_get_obj_list_item(type, cat, list[i]);
+        printf ("%02d: %s\n", list[i],  result);
+        free(result);
+    }
+    
+    free(list);
+    
+    sync_close_session(type);
+    alcatel_detach();
+}
+
+void list_alc_items(alc_type sync, alc_type type) {
+    alc_type *result;
+    int i, j;
+    int *ids, *items;
+    FIELD *field;
+
+    int count;
+    
+    switch (sync) {
+        case ALC_SYNC_CALENDAR:
+            count = ALC_CALENDAR_FIELDS;
+            break;
+        case ALC_SYNC_TODO:
+            count = ALC_TODO_FIELDS;
+            break;
+        case ALC_SYNC_CONTACTS:
+            count = ALC_CONTACTS_FIELDS;
+            break;
+    }
+                
+    alcatel_attach();
+    
+    sync_start_session();
+    sync_select_type(type);
+    sync_begin_read(sync);
+
+    ids = sync_get_ids(type);
+
+    message(MSG_INFO, "Received %d ids", ids[0]);
+    
+    for (i = 1; i <= ids[0]; i++) {
+        message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
+        items = sync_get_fields(type, ids[i]);
+        message(MSG_INFO, "Receiving data for item %d (%d fields)", ids[i], items[0]);
+        printf ("Item %d (fields: %d):\n", ids[i], items[0]);
+        for (j = 1; j <= items[0]; j++) {
+            message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
+            result = sync_get_field_value(type, ids[i], items[j]);
+            field = decode_field_value(result);
+            if (items[j]  < count) {
+                switch (sync) {
+                    case ALC_SYNC_CALENDAR:
+                        printf ("  %s:", alc_calendar_field_names[items[j]]);
+                        break;
+                    case ALC_SYNC_TODO:
+                        printf ("  %s:", alc_todo_field_names[items[j]]);
+                        break;
+                    case ALC_SYNC_CONTACTS:
+                        printf ("  %s:", alc_contacts_field_names[items[j]]);
+                        break;
+                }
+            } else {
+                printf(" UNKNOWN(%02d): ",items[j]);
+            }
+            if (field == NULL) {
+                printf ("UNKNOWN TYPE (%02X %02X)\n", result[1], result[2]);
+            } else {
+                switch (field->type) {
+                    case _date:
+                        printf ("%02d. %02d. %4d\n", ((DATE *)(field->data))->day, 
+                                ((DATE *)(field->data))->month, 
+                                ((DATE *)(field->data))->year);
+                        break;
+                    case _time:
+                        printf ("%02d:%02d:%02d\n", ((TIME *)(field->data))->hour, 
+                                ((TIME *)(field->data))->minute, 
+                                ((TIME *)(field->data))->second);
+                        break;
+                    case _string:
+                        printf("%s\n", (char *)(field->data));
+                        break;
+                    case _phone:
+                        printf("%s\n", (char *)(field->data));
+                        break;
+                    case _enum:
+                        printf("%d\n", *(int *)(field->data));
+                        break;
+                    case _bool:
+                        printf("%s\n", *(int *)(field->data) ? "yes" : "no");
+                        break;
+                    case _int:
+                        printf("%d\n", *(int *)(field->data));
+                        break;
+                    case _byte:
+                        printf("%d\n", *(int *)(field->data));
+                        break;
+                }
+            }
+            free(result);
+        }
+        free(items);
+    }
+    free(ids);
+    
+    sync_close_session(type);
+    alcatel_detach();
 }
 
 int main(int argc, char *argv[]) {
     char data[1024];
     SMS *sms, *sms1;
     int i, j;
-
-	int *ids, *items, *list;
-	alc_type *result;
-    alc_type c;
-	FIELD *field;
 
     msg_level = MSG_INFO;
 
@@ -355,98 +524,16 @@ int main(int argc, char *argv[]) {
     if (action_binary) {
         alcatel_init();
         binary_mode_active = 1;
-        alcatel_attach();
-		
-		sync_start_session();
-#define SYNC_TYPE   ALC_SYNC_TYPE_CONTACTS
-#define SYNC        ALC_SYNC_CONTACTS
-//        for (c=0; c<=255; c++) {
-            sync_select_type(0x08); // 04 08 0c
-            c = atoi(argv[2]);
-            fprintf(stderr, "08:%02x\n", c);
-		    sync_begin_read(c);
-            sync_close_session(0x08);
-//        }
-/*
-        sync_select_type(SYNC_TYPE);
-		sync_begin_read(SYNC);
-		ids = sync_get_ids(SYNC_TYPE);
 
-		message(MSG_INFO, "Received %d ids", ids[0]);
+        if (action_todo_cat) list_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT);
+        if (action_todo) list_alc_items(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO);
+        if (action_contacts_cat) list_alc_cats(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS, ALC_LIST_CONTACTS_CAT);
+        if (action_contacts) list_alc_items(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS);
+        if (action_calendar) list_alc_items(ALC_SYNC_CALENDAR, ALC_SYNC_TYPE_CALENDAR);
         
-		for (i = 1; i <= ids[0]; i++)
-            printf ("%02d: %02d\n", i, ids[i]);
-
---        
-        list = sync_get_obj_list(SYNC_TYPE, ALC_LIST_CONTACTS_CAT);
-		
-        message(MSG_INFO, "Received %d categories:", list[0]);
-
-		for (i = 1; i <= list[0]; i++) {
-            result = sync_get_obj_list_item(SYNC_TYPE, ALC_LIST_CONTACTS_CAT, i);
-            printf ("%02d: %s\n", list[i],  result);
-            free(result);
-        }
-        
-        free(list);
-
-		for (i = 1; i <= ids[0]; i++) {
-			message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
-			items = sync_get_fields(SYNC_TYPE, ids[i]);
-			message(MSG_INFO, "Receiving data for item %d (%d fields)", ids[i], items[0]);
-			printf ("Item %d (fields: %d):\n", ids[i], items[0]);
-			for (j = 1; j <= items[0]; j++) {
-				message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
-				result = sync_get_field_value(SYNC_TYPE, ids[i], items[j]);
-            	message(MSG_DEBUG,"1-Received field info: %s", hexdump(result + 1, result[0], 1));
-            	message(MSG_DEBUG,"2-Received field info: %s", reform(result + 1, 1));
-				field = decode_field_value(result);
-            	printf(" %02d: ",items[j]);
-				if (field == NULL) {
-					printf ("UNKNOWN TYPE (%02X %02X)\n", result[1], result[2]);
-                } else {
-                    switch (field->type) {
-                        case _date:
-                            printf ("%d. %02d. %4d\n", ((DATE *)(field->data))->day, 
-                                    ((DATE *)(field->data))->month, 
-                                    ((DATE *)(field->data))->year);
-                            break;
-                        case _time:
-                            printf ("%d:%02d:%02d\n", ((TIME *)(field->data))->hour, 
-                                    ((TIME *)(field->data))->minute, 
-                                    ((TIME *)(field->data))->second);
-                            break;
-                        case _string:
-                            printf("%s\n", (char *)(field->data));
-                            break;
-                        case _phone:
-                            printf("%s\n", (char *)(field->data));
-                            break;
-                        case _enum:
-                            printf("%d\n", *(int *)(field->data));
-                            break;
-                        case _bool:
-                            printf("%s\n", *(int *)(field->data) ? "yes" : "no");
-                            break;
-                        case _int:
-                            printf("%d\n", *(int *)(field->data));
-                            break;
-                        case _byte:
-                            printf("%d\n", *(int *)(field->data));
-                            break;
-                    }
-                }
-				free(result);
-			}
-			free(items);
-		}
-		free(ids);
-		
-        sync_close_session(SYNC_TYPE);*/
-        alcatel_detach();
         alcatel_done();
         binary_mode_active = 0;
-		
+        
     }
 
     if (action_test) {

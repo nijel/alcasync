@@ -1,6 +1,6 @@
 /*****************************************************************************
- * alcatel.c - low level functions for communication with  Alcatel One Touch *
- *             501 and compatible mobile phone                               *
+ * lib/alcatel.c - low level functions for  communication with  Alcatel  One *
+ *                 Touch 501 and compatible mobile phone                     *
  *                                                                           *
  * Copyright (c) 2002 Michal Cihar <cihar at email dot cz>                   *
  *                                                                           *
@@ -44,6 +44,72 @@
 
 #define SLEEP_CHANGE    10000
 #define SLEEP_FAIL      100
+
+char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20] = {
+    "LastName",
+    "FirstName",
+    "Company",
+    "JobTitle",
+    "Note",
+    "Category",
+    "Private",
+    "WorkNumber",
+    "MainNumber",
+    "FaxNumber",
+    "OtherNumber",
+    "PagerNumber",
+    "MobileNumber",
+    "HomeNumber",
+    "Email1",
+    "Email2",
+    "Address",
+    "City",
+    "State",
+    "Zip",
+    "Coutry",
+    "Custom1",
+    "Custom2",
+    "Custom3",
+    "Custom4"
+};
+
+char alc_calendar_field_names[ALC_CALENDAR_FIELDS][20] = {
+	"Date",
+	"StartTime",
+	"EndTime",
+	"AlarmDate",
+	"AlarmTime",
+	"Subject",
+	"Private",
+	"EventType",
+	"ContactID",
+	"KNOWN UNKNOWN (9)", 	/* I haven't seen this yet */
+	"DayOfWeek",
+	"Day",
+	"WeekOfMonth",
+	"Month",
+	"KNOWN UNKNOWN (14)",	/* I haven't seen this yet */
+	"KNOWN UNKNOWN (15)",	/* I haven't seen this yet */
+	"KNOWN UNKNOWN (16)",	/* I haven't seen this yet */
+	"Frequency",
+	"StartDate",
+	"StopDate",
+	/* Following two were created by IntelliSync, but it couldn't read it back... */
+	"KNOWN UNKNOWN (21)",	/* this contains date, probably same as AlarmDate */
+	"KNOWN UNKNOWN (22)"	/* this contains time, probably same as AlarmTime */
+};
+
+char alc_todo_field_names[ALC_TODO_FIELDS][20] = {
+	"DueDate",
+	"Completed",
+	"AlarmDate",
+	"AlarmTime",
+	"Subject",
+	"Private",
+	"Category",
+	"Priority",
+	"ContactID"
+};
 
 alc_type in_counter = 0;
 alc_type out_counter = 0;
