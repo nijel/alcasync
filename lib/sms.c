@@ -1,5 +1,6 @@
 /* $Id$ */
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,8 +8,12 @@
 #include "sms.h"
 #include "pdu.h"
 #include "modem.h"
+#include "mobile.h"
 #include "common.h"
 #include "logging.h"
+
+//TODO:
+//at+cmss
 
 int delete_sms(int which) {
     char buffer[1024];
@@ -21,7 +26,7 @@ int delete_sms(int which) {
 	return 1;
 }
 
-SMS *get_smss() {
+SMS *get_smss(int state) {
     char buffer[10000];
     char *data;
     int count = 0;
@@ -33,7 +38,8 @@ SMS *get_smss() {
     
     message(MSG_INFO,"Reading all messages");
     
-    modem_cmd("AT+CMGL\r\n",buffer,sizeof(buffer)-1,50,0);
+    sprintf(raw, "AT+CMGL=%d\r\n", state);
+    modem_cmd(raw ,buffer,sizeof(buffer)-1,100,0);
     
     data = buffer;
     /* how many sms messages are listed? */
@@ -56,7 +62,7 @@ SMS *get_smss() {
         sscanf(data, "+CMGL: %d, %d, , %d\n", &(mesg[count].pos), &(mesg[count].stat), &(mesg[count].len));
         data = strchr(data, '\n');
         sscanf(data,"\n%s\n",raw);
-        splitpdu(raw, sendr, &(mesg[count].date), ascii, smsc);
+        split_pdu(raw, sendr, &(mesg[count].date), ascii, smsc);
         mesg[count].raw = strdup(raw);
         mesg[count].sendr = strdup(sendr);
         mesg[count].ascii = strdup(ascii);
@@ -93,11 +99,84 @@ SMS *get_sms(int which) {
     sscanf(data, "+CMGR: %d, , %d\n", &((*mesg).stat), &((*mesg).len));
     data = strchr(data, '\n');
     sscanf(data,"\n%s\n",raw);
-    splitpdu(raw, sendr, &((*mesg).date), ascii, smsc);
+    split_pdu(raw, sendr, &((*mesg).date), ascii, smsc);
     (*mesg).raw = strdup(raw);
     (*mesg).sendr = strdup(sendr);
     (*mesg).ascii = strdup(ascii);
     (*mesg).smsc = strdup(smsc);
 
     return mesg;
+}
+
+int send_sms(char *pdu) {
+    char buffer[10000];
+    char cmd[1024];
+	char *pos;
+
+    message(MSG_INFO,"Sending message");
+    sprintf(cmd, "AT+CMGS=%d\r", (strlen(pdu)/2)-1);
+    modem_cmd(cmd, buffer, sizeof(buffer)-1, 50, ">");
+    sprintf(cmd, "%s\032", pdu);
+    modem_cmd(cmd, buffer, sizeof(buffer)-1, 50, "+");
+	if (strstr(buffer, "ERROR")) return -1;
+	else {
+		pos = strstr(buffer, "+CMGS: ");
+		pos += 7;
+		return atoi(pos);
+	}
+}
+
+int put_sms(char *pdu, int state) {
+    char buffer[10000];
+    char cmd[1024];
+	char *pos;
+
+    message(MSG_INFO,"Writing message");
+    sprintf(cmd, "AT+CMGW=%d,%d\r", (strlen(pdu)/2)-1, state);
+    modem_cmd(cmd, buffer, sizeof(buffer)-1, 50, ">");
+    sprintf(cmd, "%s\032", pdu);
+    modem_cmd(cmd, buffer, sizeof(buffer)-1, 50, NULL);
+	if (strstr(buffer, "ERROR")) return -1;
+	else {
+		pos = strstr(buffer, "+CMGW: ");
+		pos += 7;
+		return atoi(pos);
+	}
+}
+
+char *get_smsc(void) {
+	char buffer[1024];
+    char *s, *t;
+
+	modem_cmd("AT+CSCA?\r\n", buffer, sizeof(buffer) - 1, 50, NULL);
+    s = strstr(buffer, "+CSCA: ");
+    s += 7;
+
+	if ((t = strchr(s, '\n'))) /* too many parentheses to mke gcc happy */
+		*t = '\0';
+	
+	while (isspace(*s)) s++;
+	
+	if (!*s || !strcmp(s,"EMPTY"))
+		message(MSG_ERROR, "No SMSC set in mobile!");
+	
+	if (*s++ != '"')
+		message(MSG_ERROR, "No left-quote found in SMSC number!");
+	
+	if (!(t = strrchr(s,'"'))) {
+		message(MSG_ERROR, "No right-quote found in SMSC number!");
+		if (!(t = strrchr(s,','))) {
+			message(MSG_ERROR, "No comma found after SMSC number!");
+			t = s + strlen(s) - 1;
+		}
+	}
+
+	if (s == t)
+		message(MSG_ERROR, "No SMSC set in mobile!");
+	
+	*t = '\0';
+
+    chk(t=strdup(s));
+	
+    return t;
 }

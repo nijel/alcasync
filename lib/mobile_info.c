@@ -7,6 +7,41 @@
 #include "logging.h"
 #include "version.h"
 
+/* TODO:
+ * international mobile subscriber identity
+ *<at+cimi
+ *><IMSI>:230012000319080
+ *
+ * clock:
+ *<at+cclk?
+ *>+CCLK: "02/01/30,13:58:33"
+ *
+ *<at+cclk="02/01/30,14:02:40+00"
+ *>OK
+ *
+ * alarm:
+ *  - text = max 32 chars
+ *  - at once can be active only one
+ *<at+cala="02/01/30,14:10:00+00",1,0,"hokus pokus"
+ *>OK
+ *
+ *<at+cala?
+ *>+CALA: "210/01/30,14:06:00",2,0,"test2"
+ *>+CALA: "210/01/30,14:06:00",3,0,"test3"
+ *>+CALA: "210/01/30,14:06:00",5,0,"test5"
+ *>+CALA: "210/01/30,14:10:00",1,0,"hokus pokus"
+ *>+CALA: "210/01/30,14:06:00",4,0,"test4"
+ *>
+ *>
+ *>OK
+ *
+ *<at+cala=?
+ *>+CALA: (1-5), (0), 241
+ *
+ * 
+
+ */
+
 char mobil_signal_info[][10] = {
     "<-113 dBm", 
     "-111 dBm", 
@@ -41,6 +76,7 @@ char mobil_signal_info[][10] = {
     "-53 dBm",
     ">-51 dBm"
 };
+
 
 int get_battery(int *mode, int *charge){
     char buffer[1000], *pos;

@@ -182,15 +182,19 @@ void modem_init() {
     {
         message(MSG_DETAIL,"Sending init: \"%s\"",initstring);
     	sprintf(command,"%s\r\n",initstring);
-        modem_cmd(command,answer,sizeof(answer),100,NULL);
+        modem_cmd(command,answer,sizeof(answer),50,NULL);
     }
 
     /* check whether there is any modem */
-    if (modem_cmd("AT\r\n",answer,sizeof(answer),100,0) == 0) {
+    if (modem_cmd("AT\r\n",answer,sizeof(answer),50,0) == 0) {
         message(MSG_ERROR,"Modem is not reacting to AT command!");
         exit(3);
     }
 	modem_initialised = 1;
+
+// alcatel also supports USC2 but it is used only for contacts on sim card and
+// return values o some commands (at+csca)
+    modem_cmd("at+CSCS=\"GSM\"\r\n", answer, sizeof(answer), 50, NULL);
 
 // why use this??    
 //    message(MSG_DETAIL,"Setting rate");
@@ -200,8 +204,7 @@ void modem_init() {
     /* select PDU mode for SMSs (Alcatel OT 501 doesn't support any other...) */
     message(MSG_DETAIL,"Selecting PDU mode 0");
     modem_cmd("AT+CMGF=0\r\n",answer,sizeof(answer),100,0);
-    if (strstr(answer,"ERROR"))
-    {
+    if (strstr(answer,"ERROR")) {
         message(MSG_ERROR,"Modem did not accept PDU mode 0");
         exit(4);
     }

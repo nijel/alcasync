@@ -46,6 +46,7 @@
 #include "version.h"
 #include "charset.h"
 #include "sms.h"
+#include "common.h"
 #include "pdu.h"
 #include "alcatel.h"
 
@@ -61,60 +62,82 @@ int action_info = 0;
 int action_monitor = 0;
 int action_sms = 0;
 int action_binary = 0;
+
+int action_implicit = 0;
+
 int action_read[1000];
 int action_read_pos = 0;
+
 int action_del[1000];
 int action_del_pos = 0;
+
+
 int action_list = 0;
-int action_implicit_list = 0;
+int action_write = 0;
+int action_write_type = 0;
+int action_send = 0;
+
 int action_contacts = 0;
 int action_contacts_cat = 0;
 int action_todo = 0;
 int action_todo_cat = 0;
 int action_calendar = 0;
 
+int wanted_extra_params = 0;
+char **extra_params;
+
 int action_test = 0;
 
 int binary_mode_active = 0;
+
 extern char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20],
             alc_calendar_field_names[ALC_CALENDAR_FIELDS][20],
             alc_todo_field_names[ALC_TODO_FIELDS][20];
 
 void help() {
     printf("This is " NAME " version " VERSION " Copyright (c) " COPYRIGHT "\n");
-    printf("Usage:  %s [options]\n", basename(progname));
+    printf("Usage:  %s [options] [--] [string parameters if required]\n", basename(progname));
     printf("Options:\n");
-    printf("    -d(dev)/--device=(dev) ... modem device [%s]\n",default_device);
-    printf("    -K(fn)/--lock=(fn) ... lock filename [/var/lock/LCK..device]\n");
-    printf("    -I(s)/-init=(s) ... init string for modem [%s]\n",default_init);
-    printf("    -B(n)/--rate=(n) ... baud rate [%d]\n",default_rate);
+    printf("    -d<dev>/--device=<dev> ... modem device [%s]\n",default_device);
+    printf("    -K<fn>/--lock=<fn> ... lock filename [/var/lock/LCK..device]\n");
+    printf("    -I<s>/-init=<s> ... init string for modem [%s]\n",default_init);
+    printf("    -B<n>/--rate=<n> ... baud rate [%d]\n",default_rate);
     printf("    -q/--quiet ... be more quiet\n");
     printf("    -v/--verbose ... be more verbose\n");
 //    printf("    - ...  [%s]\n",default_);
 
-    printf("Actions (at least one MUST be specified):\n");
+    printf("Modes (at least one MUST be specified):\n");
     printf("    -i/--info ... show mobile info\n");
-    printf("    -s[(n)]/--sms[=(n)] ... list SMSs / show selected SMS\n");
+    printf("    -s[<n>]/--sms[=<n>] ... enable SMS mode / show selected SMS\n");
 //    printf("    -c/--contacts ... list contacts\n");
-    printf("    -S/--monitor ... monitor signal strength\n");
+    printf("    -m/--monitor ... monitor signal strength\n");
 //    printf("    - \n");
     printf("    -b/--binary ... enable binary (Alcatel) mode\n");
     
-    printf("Binary subactions (at least one should be specified, otherwise just enter and leave binary mode):\n");
+    printf("Binary mode actions (at least one should be specified):\n");
     printf("    -c/--contacts ... list contacts\n");
     printf("    -a/--calendar ... list calendar entries\n");
     printf("    -t/--todo ... list todo entries\n");
     printf("    -T/--todo-cat ... list todo categories\n");
     printf("    -C/--contacts-cat ... list contacts categories\n");
+	
+    printf("SMS mode mode actions (in order of execution if appers more):\n");
+    printf("    -x<n>/--delete=<n> ... delete message number <n>\n");
+    printf("    -r<n>/--read=<n> ... read message number <n>\n");
+    printf("    -w[<n>]/--write[=<n>] * ... write message as sent [default] or unsent <n>!=0\n");
+    printf("    -S/--send * ... send message number <n>\n");
+    printf("    -l/--list ... list all messages [default]\n");
+    printf("       * = send and write require 2 parameters: phone number and message text");
+//    printf("    -\n");
     
     printf("Help and simmilar:\n");
     printf("    -V/--version ... show version information\n");
     printf("    -h/--help ... this help\n");
     printf("Used symbols:\n");
-    printf(" (n) = number\n");
-    printf(" (dev) = device name\n");
-    printf(" (fn) = file name\n");
-    printf(" (s) = string\n");
+    printf(" <n> = number\n");
+    printf(" <dev> = device name\n");
+    printf(" <fn> = file name\n");
+    printf(" <s> = string\n");
     printf("\n");
     printf("Return values:\n");
     printf(" 0 - success\n");
@@ -129,6 +152,7 @@ void help() {
     printf(" 200 - no action\n");
     printf(" 201 - bad baud rate\n");
     printf(" 202 - bad device name\n");
+    printf(" 203 - not enough additional parameters\n");
     printf(" 255 - displayed help\n");
 
     exit(255);
@@ -145,19 +169,21 @@ void version() {
 
 
 void parse_params(int argc, char *argv[]) {
-    int result;
+    int result, i;
     char *devname;
 
 static const struct option longopts[]={
 {"info"        ,0,0,'i'},
-{"monitor"     ,0,0,'S'},
+{"monitor"     ,0,0,'m'},
 {"sms"         ,2,0,'s'},
-
 {"binary"      ,1,0,'b'},
     
 {"read"        ,1,0,'r'},
 {"delete"      ,1,0,'x'},
 {"list"        ,0,0,'l'},
+
+{"write"       ,2,0,'w'},
+{"send"        ,0,0,'S'},
 
 {"contacts"    ,0,0,'c'},
 {"calendar"    ,0,0,'a'},
@@ -173,6 +199,8 @@ static const struct option longopts[]={
 {"quiet"       ,0,0,'q'},
 {"verbose"     ,0,0,'v'},
 
+{"test"        ,0,0,'@'},
+
 {"help"        ,0,0,'h'},
 {"version"     ,0,0,'V'},
 {NULL          ,0,0,0  }};
@@ -187,8 +215,19 @@ static const struct option longopts[]={
     strcpy(initstring,default_init);
     rate=default_rate;
 
-    while ((result=getopt_long(argc,argv,"bcatCThd:K:I:B:is::SvqVr:x:lT",longopts,NULL))>0) {
+    while ((result=getopt_long(argc,argv,"bcatCThd:K:I:B:is::SvqVr:x:lTmw::",longopts,NULL))>0) {
         switch (result) {
+            case 'w':
+                wanted_extra_params += 2;
+                action_write = 1;
+                if (optarg != NULL) {
+                    action_write_type = atoi(optarg);
+                }
+                break;;
+            case 'S':
+                wanted_extra_params += 2;
+                action_send = 1;
+                break;;
             case 'c':
                 action_any = 1;      /* contacts can be standalone - read from sim */
                 action_contacts = 1;
@@ -242,7 +281,7 @@ static const struct option longopts[]={
                 action_any = 1;
                 action_sms = 1;
                 if (optarg == NULL) {
-                    action_implicit_list = 1;
+                    action_implicit = 1;
                     break;
                 }
             case 'r':
@@ -257,7 +296,7 @@ static const struct option longopts[]={
                 action_any = 1;
                 action_binary = 1;
                 break;
-            case 'S':
+            case 'm':
                 action_monitor = 1;
                 action_any = 1;
                 break;
@@ -267,9 +306,29 @@ static const struct option longopts[]={
             case 'v':
                 if (msg_level>MSG_ALL) msg_level--;
                 break;
+            case '@':
+                action_any = 1;
+                action_test = 1;
+                break;
         }
         
     }
+    
+    if (argc - optind < wanted_extra_params) {
+        message(MSG_ERROR,"Not enough addional parameters!");
+        exit(203);
+    } else if (argc - optind > wanted_extra_params) {
+        message(MSG_ERROR,"Too much optional parameters! %d will be ignored.", argc - optind - wanted_extra_params);
+    }
+
+    if (optind < argc) {
+        extra_params = malloc(MIN((argc - optind),wanted_extra_params) * sizeof(char *));
+        i = 0;
+        while ((optind + i)< argc) {
+            extra_params[i] = argv[optind + i];
+            i++;
+        }
+    }    
     
     switch (rate) {
         case 2400:   baudrate=B2400; break;
@@ -287,6 +346,11 @@ static const struct option longopts[]={
         message(MSG_INFO,"Try -h for help");
         exit(200);
     }
+}
+
+void shorten_extra_params(int count) {
+    wanted_extra_params -= count;
+    memmove(extra_params, extra_params + count, wanted_extra_params * sizeof(char *)); 
 }
 
 void shutdown() {
@@ -430,9 +494,93 @@ void list_alc_items(alc_type sync, alc_type type) {
     alcatel_detach();
 }
 
+void print_message(SMS* sms) {
+    if (((*sms).stat == SMS_SENT) || ((*sms).stat == SMS_UNSENT)) {
+        printf("To: %s\nSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
+            (*sms).sendr,
+            (*sms).smsc,
+            (*sms).stat,
+            (*sms).pos,
+            (*sms).ascii);
+    } else {
+        printf("From: %s\nDate: %sSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
+            (*sms).sendr,
+            ctime(&((*sms).date)),
+            (*sms).smsc,
+            (*sms).stat,
+            (*sms).pos,
+            (*sms).ascii);
+    }
+}
+
+void list_messages() {
+    SMS *sms;
+    int i;
+    sms = get_smss(SMS_ALL);
+    i = 0;
+    while (sms[i].pos != -1) {
+        print_message(sms+i);
+        i++;
+        if (sms[i].pos != -1) printf ("-------------------------------------------------------------------------------\n");
+    }
+    free(sms);
+}
+
+void read_messages() {
+    SMS *sms;
+    int i;
+    for (i = 0; i < action_read_pos; i++){
+        sms = get_sms(action_read[i]);
+        if (sms) {
+            print_message(sms);
+            free(sms);
+        } else {
+            message(MSG_ERROR,"Message %d not found!", action_read[i]);
+        }
+        if (i != action_read_pos - 1) printf ("-------------------------------------------------------------------------------\n");
+    }
+}
+
+void delete_messages() {
+    int i;
+    for (i = 0; i < action_del_pos; i++){
+        if (delete_sms(action_del[i])) {
+            message(MSG_INFO,"Message %d deleted!", action_del[i]);
+        } else {
+            message(MSG_ERROR,"Message %d not found!", action_del[i]);
+        }
+    }
+}
+
+void send_message() {
+    char pdu[1024];
+    int i;
+    
+    make_pdu(extra_params[0], extra_params[1], 0, PDU_CLASS_SIM, pdu);
+    i = send_sms(pdu);
+    if (i != -1) printf ("Message send, message reference = %d\n", i);
+    else message(MSG_ERROR, "Message not sent!");
+    shorten_extra_params(2);
+}
+
+void write_message() {
+    char pdu[1024];
+    int i;
+
+    make_pdu(extra_params[0], extra_params[1], 0, PDU_CLASS_SIM, pdu);
+    i = put_sms(pdu, (action_write_type == 0) ? SMS_SENT : SMS_UNSENT);
+    if (i != -1) printf ("Message written at position %d\n", i);
+    else message(MSG_ERROR, "Message not written!");
+    shorten_extra_params(2);
+}
+
+void test() {
+    printf ("Currently no feature to test!\n");
+}
+
 int main(int argc, char *argv[]) {
     char data[1024];
-    SMS *sms, *sms1;
+    char *s;
     int i, j;
 
     msg_level = MSG_INFO;
@@ -465,52 +613,29 @@ int main(int argc, char *argv[]) {
         
         get_signal(&i,&j);
         printf ("Signal strenght: %s (%d), error rate: %d\n",i == 99 ? "unknown" : mobil_signal_info[i], i, j);
+
+        s = get_smsc();
+        printf ("SMS centre number: %s\n", s);
     }
 
     if (action_sms) {
         if (action_del_pos > 0) {
-            for (i = 0; i < action_del_pos; i++){
-                if (delete_sms(action_del[i])) {
-                    message(MSG_INFO,"Message %d deleted!", action_del[i]);
-                } else {
-                    message(MSG_ERROR,"Message %d not found!", action_del[i]);
-                }
-            }
-            action_implicit_list = 0;
+            delete_messages();
+            action_implicit = 0;
         }
         if (action_read_pos > 0) {
-            for (i = 0; i < action_read_pos; i++){
-                sms1 = get_sms(action_read[i]);
-                if (sms1) {
-                    printf("From: %s\nDate: %sSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
-                            (*sms1).sendr,
-                            ctime(&((*sms1).date)),
-                            (*sms1).smsc,
-                            (*sms1).stat,
-                            (*sms1).pos,
-                            (*sms1).ascii);
-                } else {
-                    message(MSG_ERROR,"Message %d not found!", action_read[i]);
-                }
-                if (i != action_read_pos - 1) printf ("-------------------------------------------------------------------------------\n");
-            }
-            action_implicit_list = 0;
+            read_messages();
+            action_implicit = 0;
         }
-        if (action_list || action_implicit_list) {
-            sms = get_smss();
-            i = 0;
-            while (sms[i].pos != -1) {
-                printf("From: %s\nDate: %sSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
-                        sms[i].sendr,
-                        ctime(&(sms[i].date)),
-                        sms[i].smsc,
-                        sms[i].stat,
-                        sms[i].pos,
-                        sms[i].ascii);
-                i++;
-                if (sms[i].pos != -1) printf ("-------------------------------------------------------------------------------\n");
-            }
+        if (action_write) {
+            write_message();
+            action_implicit = 0;
         }
+        if (action_send) {
+            send_message();
+            action_implicit = 0;
+        }
+        if (action_list || action_implicit) list_messages();
     }
     
     if (action_monitor) {
@@ -537,6 +662,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (action_test) {
+		test();
     }
 
     return 0;

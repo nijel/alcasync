@@ -1,10 +1,13 @@
 /* $Id$ */
+#define _GNU_SOURCE
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "pdu.h"
+#include "common.h"
+#include "mobile.h"
 #include "charset.h"
 
 int str2pdu(char *str, char *pdu, int charset_conv) {
@@ -108,9 +111,10 @@ void swapchars(char* string) {
     }
 }
 
-int splitpdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
+int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     int Length;
     int padding;
+    int type;
     char *Pointer;
     char numb[]="00";
     struct tm time;
@@ -122,6 +126,7 @@ int splitpdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     Length=octet2bin(pdu)*2-2;
     if (Length>0)
     {
+        type = octet2bin(pdu + 2);
         Pointer=pdu+4;
         strncpy(smsc,Pointer,Length);
         swapchars(smsc);
@@ -130,66 +135,155 @@ int splitpdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
             smsc[Length-1]=0;
         else
             smsc[Length]=0;
+        if (type == NUM_INT) {
+            memmove(smsc + 1, smsc, strlen(smsc));
+            smsc[0] = '+';
+        }
     }
-    Pointer=pdu+Length+6;  
-    Length=octet2bin(Pointer);
-    padding=Length%2;
-    Pointer+=4;
-    strncpy(sendr,Pointer,Length+padding);
-    swapchars(sendr);
-    /* remove Padding characters after swapping */
-    sendr[Length]=0;
-    Pointer=Pointer+Length+padding+3;
-    /* extract date */
-    Pointer++;
-    numb[0]=Pointer[5];
-    numb[1]=Pointer[4];
-    time.tm_mday = atoi(numb);
-    numb[0]=Pointer[3];
-    numb[1]=Pointer[2];
-    time.tm_mon = atoi(numb)-1;
-    numb[0]=Pointer[1];
-    numb[1]=Pointer[0];
-    time.tm_year = 100 + atoi(numb);
-    Pointer=Pointer+6;
-    numb[0]=Pointer[5];
-    numb[1]=Pointer[4];
-    time.tm_sec = atoi(numb);
-    numb[0]=Pointer[3];
-    numb[1]=Pointer[2];
-    time.tm_min = atoi(numb);
-    numb[0]=Pointer[1];
-    numb[1]=Pointer[0];
-    time.tm_hour = atoi(numb);
-    *date = mktime(&time);
+    Pointer=pdu+Length+4;
+    if (octet2bin(Pointer) == 0x11) {
+        Pointer += 4;
+        Length=octet2bin(Pointer);
+        padding=Length%2;
+        type = octet2bin(Pointer + 2);
+        Pointer += 4;
+        strncpy(sendr,Pointer,Length+padding);
+        swapchars(sendr);
+        sendr[Length]=0;
+        if (type == NUM_INT) {
+            memmove(sendr + 1, sendr, strlen(sendr));
+            sendr[0] = '+';
+        }
+        Pointer += Length + padding + 6;
+        *date = -1;
+    } else {
+        Pointer += 2;
+        Length=octet2bin(Pointer);
+        padding=Length%2;
+        type = octet2bin(Pointer + 2);
+        Pointer+=4;
+        strncpy(sendr,Pointer,Length+padding);
+        swapchars(sendr);
+        sendr[Length]=0;
+        if (type == NUM_INT) {
+            memmove(sendr + 1, sendr, strlen(sendr));
+            sendr[0] = '+';
+        }
+        Pointer=Pointer+Length+padding+4; // skip protocol and coding scheme
+        /* extract date */
+        numb[0]=Pointer[5];
+        numb[1]=Pointer[4];
+        time.tm_mday = atoi(numb);
+        numb[0]=Pointer[3];
+        numb[1]=Pointer[2];
+        time.tm_mon = atoi(numb)-1;
+        numb[0]=Pointer[1];
+        numb[1]=Pointer[0];
+        time.tm_year = 100 + atoi(numb);
+        Pointer=Pointer+6;
+        numb[0]=Pointer[5];
+        numb[1]=Pointer[4];
+        time.tm_sec = atoi(numb);
+        numb[0]=Pointer[3];
+        numb[1]=Pointer[2];
+        time.tm_min = atoi(numb);
+        numb[0]=Pointer[1];
+        numb[1]=Pointer[0];
+        time.tm_hour = atoi(numb);
+        *date = mktime(&time);
 
-    Pointer=Pointer+8;
-    
+        Pointer=Pointer+8; //skip time zone
+    }
     /* read message content */
     return pdu2str(Pointer,ascii,1);
-} 
+}
 
-/* make the PDU string. The destination variable pdu has to be big enough. */
-void make_pdu(char* nummer, char* message, int messagelen, int report, char* pdu)
-{
-  int coding;
-  int flags;
-  char tmp[500];
-  strcpy(tmp,nummer);
-  /* terminate the number with F if the length is odd */
-  if (strlen(tmp)%2)
-    strcat(tmp,"F");
-  /* Swap every second character */
-  swapchars(tmp);
-    flags=1; /* SMS-Submit MS to SMSC */
-    coding=240+0+1; /* Dummy + 7 Bit + Class 1 */
-  if (report)
-    flags=flags+32; /* Request Status Report */
-  /* concatenate the first part of the PDU string */
-    sprintf(pdu,"00%02X00%02X91%s00%02XA7%02X",flags,strlen(nummer),tmp,coding,messagelen);
-  /* Create the PDU string of the message */
-    str2pdu(message,tmp,1);
-  /* concatenate the text to the PDU string */
-  strcat(pdu,tmp);
+
+char *make_pdu_number(char *number, int add) {
+    char *result;
+    char tmp[100];
+    int num_type, num_len;
+
+    num_len = strlen(number);
+
+    if (number[0] == '+') {
+        strncpy(tmp, number + 1, PDU_MAXNUMLEN);
+        num_type = NUM_INT;
+        num_len--;
+    } else {
+        strncpy(tmp, number, PDU_MAXNUMLEN);
+        num_type = NUM_NAT;
+    }
+
+    /* terminate the number with F if the length is odd */
+    if (strlen(tmp) % 2)
+        strcat(tmp, "F");
+
+    /* Swap every second character */
+    swapchars(tmp);
+    
+    chk(result = malloc(strlen(tmp) + 3));
+
+    sprintf(result, "%02X%02X%s", (add != 0)?((num_len/2)+1):num_len, num_type, tmp);
+    
+    return result;
+}
+
+
+void make_pdu_smsc(char *smsc, char* number, char* message, int deliv_report, int pdu_class, char* pdu) {
+    /* this currently doesn't work as expected ... */
+    char pdu_msg[500];
+    char *pdu_number, *pdu_smsc;
+    char *msg;
+    char stime[13];
+    struct tm *stamp;
+    time_t t;
+    
+    t = time(NULL);
+    stamp = localtime(&t);
+
+    pdu_smsc = make_pdu_number(smsc, 2);
+    pdu_number = make_pdu_number(number, 0);
+    
+    msg = strndup(message,PDU_MAXBODYLEN);
+
+    str2pdu(msg, pdu_msg, 1);
+
+    sprintf(stime, "%02d%02d%02d%02d%02d%02d", 
+            stamp->tm_year - 100,
+            stamp->tm_mon + 1,
+            stamp->tm_mday, 
+            stamp->tm_hour,
+            stamp->tm_min,
+            stamp->tm_sec);
+    
+    swapchars(stime);
+
+    sprintf(pdu, "%s00%s0000%s00%02X%s", pdu_smsc, pdu_number, stime, strlen(msg), pdu_msg);
+}
+
+void make_pdu(char* number, char* message, int deliv_report, int pdu_class, char* pdu) {
+    char pdu_msg[500];
+    char *pdu_number;
+    char *msg;
+    int pdu_type, pdu_coding_scheme;
+
+    pdu_number = make_pdu_number(number, 0);
+    
+    msg = strndup(message,PDU_MAXBODYLEN);
+
+    pdu_type = 16 + 1; /* Validity Field + SMS-Submit MS to SMSC */
+				/* 64 = user data */
+    pdu_coding_scheme = 240 + 0 + pdu_class; /* Dummy + 7 Bit + Class */
+						/* 4 = 8 Bit */
+	if (deliv_report)
+		pdu_type = pdu_type + 32; /* Request Status Report */
+
+    str2pdu(msg, pdu_msg, 1);
+
+    sprintf(pdu, "00%02X00%s00%02XFF%02X%s", pdu_type, pdu_number, pdu_coding_scheme, strlen(msg), pdu_msg);
+//                                ^^ validity
+//                          ^^ protocol identifier
+//                      ^^ message reference
 }
 
