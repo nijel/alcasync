@@ -26,6 +26,24 @@
 #ifndef ALCATEL_H
 #define ALCATEL_H
 
+/* returned error codes are teken directly from mobile, majority of them is
+ * unknown, but here are few with ther probably meaning:
+ * 
+ *  0x00 = ok, operation suceeded
+ *  
+ *  0x10 = calendar busy - this you will get when attempt to select sync type
+ *          as calendar or todo and user has opened calendar or todo directly
+ *          on mobile (in this case calendar and todo are treated as same
+ *          "object", so if you try to open todo and user lists in calendar
+ *          you will get this failure)
+ *  0x14 = bad data - this library has probably made data that do not conform
+ *          protocol that is used, try to find out which packet was send
+ *          before and what action failed and they either try to find error
+ *          or try to contact author to help you with it
+ *
+ *  other values are also possible... 
+ */
+
 /* packet types: */
 /* used for starting binary connection (must be preceeded by 
  * AT+CPROT=16,"V1.0",16 and phone should respons to it by CONNECT) */
@@ -117,8 +135,9 @@ void sync_start_session();
 
 void sync_close_session(alc_type type);
 
-/* select synchronisation type */
-void sync_select_type(alc_type type);
+/* select synchronisation type 
+ * returns error code from phone (see above) */
+int sync_select_type(alc_type type);
 
 /* Start reading of selected type, do NOT use here ALC_SYNC_TYPE_* use the
  * ALC_SYNC_name instead. */
@@ -150,5 +169,9 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item);
 int sync_create_obj_list_item(alc_type type, alc_type list, char *item);
 void sync_commit(alc_type type);
 void sync_del_obj_list_items(alc_type type, alc_type list);
-void sync_update_field(alc_type type, int item, int field, FIELD *data);
+
+/* select synchronisation type 
+ * returns error code from phone (see above) */
+int sync_update_field(alc_type type, int item, int field, FIELD *data);
+int sync_create_field(alc_type type, int field, FIELD *data);
 #endif

@@ -342,9 +342,12 @@ void sync_close_session(alc_type type) {
     free(alcatel_recv_packet(1));
 }
 
-void sync_select_type(alc_type type) {
+int sync_select_type(alc_type type) {
     alc_type buffer[] = {0x00, 0x00, type | 0x60, 0x20};
     alc_type buffer2[] = {0x00, 0x04, type | 0x60, 0x22, 0x01, 0x00};
+
+    int result;
+    alc_type *answer;
     
     message(MSG_INFO,"Setting sync type: %02X", type);
 
@@ -354,8 +357,18 @@ void sync_select_type(alc_type type) {
     
     alcatel_send_packet(ALC_DATA, buffer2, 6); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
-    free(alcatel_recv_packet(1));
+//    free(alcatel_recv_packet(1));
+
+    answer = alcatel_recv_packet(1);
+
+    result = answer[8];
+    
+    free(answer);
+
+    if (result == 0)
+        free(alcatel_recv_packet(1));
+
+    return result;
 }
 
 void sync_begin_read(alc_type type) {
@@ -620,13 +633,17 @@ void sync_commit(alc_type type) {
     data = alcatel_recv_packet(1);
     if (data[8] == 0) {
         free(alcatel_recv_packet(1));
+//      7E 02 15 00 09 00 07 68 20 00 00 00 37 00 18
+//                                 ^^^^^^^^^^^ should be returned....
     }
     free(data);
 }
 
-void sync_update_field(alc_type type, int item, int field, FIELD *data) {
+int sync_update_field(alc_type type, int item, int field, FIELD *data) {
     alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 
         0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
+    alc_type *answer;
+    int result;
     
     switch (data->type) {
         case _date:
@@ -701,5 +718,98 @@ void sync_update_field(alc_type type, int item, int field, FIELD *data) {
 
     alcatel_send_packet(ALC_DATA, buffer, 12 + buffer[10]); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
+    answer = alcatel_recv_packet(1);
+
+    result = answer[8];
+
+    free(answer);
+
+    return result;
+}
+
+int sync_create_field(alc_type type, int field, FIELD *data) {
+    alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x25, 0x01, 0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
+    alc_type *answer;
+    int result;
+    
+    switch (data->type) {
+        case _date:
+            buffer[6] = 0x09;
+            buffer[9] = 0x05;
+            buffer[10] = 0x67;
+            buffer[11] = 0x04;
+            buffer[12] = ((DATE *)(data->data))->month;
+            buffer[13] = ((DATE *)(data->data))->day;
+            buffer[14] = ((DATE *)(data->data))->year >> 8;
+            buffer[15] = ((DATE *)(data->data))->year & 0xff;
+            buffer[16] = 0x00;
+            break;
+        case _time:
+            buffer[6] = 0x08;
+            buffer[9] = 0x06;
+            buffer[10] = 0x68;
+            buffer[11] = 0x03;
+            buffer[12] = ((TIME *)(data->data))->hour;
+            buffer[13] = ((TIME *)(data->data))->minute; 
+            buffer[14] = ((TIME *)(data->data))->second;
+            buffer[15] = 0x00;
+            break;
+        case _string:
+            buffer[9] = 0x08;
+            buffer[10] = 0x3c;
+            strncpy(buffer + 12, (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[11] = strlen(buffer + 12);
+            buffer[6] = 5 + buffer[11];
+            buffer[12 + buffer[11]] = 0x00;
+            break;
+        case _phone:
+            buffer[9] = 0x07;
+            buffer[10] = 0x3c;
+            strncpy(buffer + 12, (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[11] = strlen(buffer + 12);
+            buffer[6] = 5 + buffer[11];
+            buffer[12 + buffer[11]] = 0x00;
+            break;
+        case _enum:
+            buffer[6] = 0x05;
+            buffer[9] = 0x04;
+            buffer[10] = 0x38;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
+            break;
+        case _bool:
+            buffer[6] = 0x05;
+            buffer[9] = 0x03;
+            buffer[10] = 0x3b;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
+            break;
+        case _int:
+            buffer[6] = 0x08;
+            buffer[9] = 0x02;
+            buffer[10] = 0x3a;
+            buffer[11] = *(int *)(data->data) >> 24;
+            buffer[12] = (*(int *)(data->data) >> 16) & 0xff;
+            buffer[13] = (*(int *)(data->data) >> 8) & 0xff;
+            buffer[14] = *(int *)(data->data) & 0xff;
+            buffer[15] = 0x00;
+            break;
+        case _byte:
+            buffer[6] = 0x05;
+            buffer[9] = 0x00;
+            buffer[10] = 0x38;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
+            break;
+    }
+
+    alcatel_send_packet(ALC_DATA, buffer, 8 + buffer[6]); 
+    free(alcatel_recv_ack(ALC_ACK));
+    answer = alcatel_recv_packet(1);
+
+    result = answer[8];
+
+    free(answer);
+
+    return result;
 }

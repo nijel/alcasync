@@ -404,12 +404,15 @@ void create_alc_cat(alc_type sync, alc_type type, alc_type cat, char *name) {
 
     sync_start_session();
 
-    sync_select_type(type);
-    sync_begin_read(sync);
+    if (sync_select_type(type) == 0) {
+        sync_begin_read(sync);
 
-    printf("Category created with number %d\n", sync_create_obj_list_item(type, cat, name));
+        printf("Category created with number %d\n", sync_create_obj_list_item(type, cat, name));
 
-    sync_commit(type);
+        sync_commit(type);
+    } else {
+        message(MSG_ERROR, "Can not open sync session!");
+    }
     
     sync_close_session(type);
     alcatel_detach();
@@ -424,13 +427,12 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
 
     sync_start_session();
 
-    sync_select_type(type);
-    sync_begin_read(sync);
+    if (sync_select_type(type) == 0) {
+        sync_begin_read(sync);
 
-
-    list = sync_get_obj_list(type, cat);
+        list = sync_get_obj_list(type, cat);
     
-    message(MSG_INFO, "Received %d categories:", list[0]);
+        message(MSG_INFO, "Received %d categories:", list[0]);
 
     for (i = 1; i <= list[0]; i++) {
         result = sync_get_obj_list_item(type, cat, list[i]);
@@ -439,6 +441,9 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     }
     
     free(list);
+    } else {
+        message(MSG_ERROR, "Can not open sync session!");
+    }
 
     sync_close_session(type);
     alcatel_detach();
@@ -449,12 +454,15 @@ void del_alc_cats(alc_type sync, alc_type type, alc_type cat) {
 
     sync_start_session();
 
-    sync_select_type(type);
-    sync_begin_read(sync);
+    if (sync_select_type(type) == 0) {
+        sync_begin_read(sync);
 
-    sync_del_obj_list_items(type, cat);
+        sync_del_obj_list_items(type, cat);
 
-    sync_commit(type);
+        sync_commit(type);
+    } else {
+        message(MSG_ERROR, "Can not open sync session!");
+    }
     
     sync_close_session(type);
     alcatel_detach();
@@ -483,76 +491,79 @@ void list_alc_items(alc_type sync, alc_type type) {
     alcatel_attach();
     
     sync_start_session();
-    sync_select_type(type);
-    sync_begin_read(sync);
+    if (sync_select_type(type) == 0) {
+        sync_begin_read(sync);
 
-    ids = sync_get_ids(type);
+        ids = sync_get_ids(type);
 
-    message(MSG_INFO, "Received %d ids", ids[0]);
-    
-    for (i = 1; i <= ids[0]; i++) {
-        message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
-        items = sync_get_fields(type, ids[i]);
-        message(MSG_INFO, "Receiving data for item %d (%d fields)", ids[i], items[0]);
-        printf ("Item %d (fields: %d):\n", ids[i], items[0]);
-        for (j = 1; j <= items[0]; j++) {
-            message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
-            result = sync_get_field_value(type, ids[i], items[j]);
-            field = decode_field_value(result);
-            if (items[j]  < count) {
-                switch (sync) {
-                    case ALC_SYNC_CALENDAR:
-                        printf ("  %s:", alc_calendar_field_names[items[j]]);
-                        break;
-                    case ALC_SYNC_TODO:
-                        printf ("  %s:", alc_todo_field_names[items[j]]);
-                        break;
-                    case ALC_SYNC_CONTACTS:
-                        printf ("  %s:", alc_contacts_field_names[items[j]]);
-                        break;
+        message(MSG_INFO, "Received %d ids", ids[0]);
+        
+        for (i = 1; i <= ids[0]; i++) {
+            message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
+            items = sync_get_fields(type, ids[i]);
+            message(MSG_INFO, "Receiving data for item %d (%d fields)", ids[i], items[0]);
+            printf ("Item %d (fields: %d):\n", ids[i], items[0]);
+            for (j = 1; j <= items[0]; j++) {
+                message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
+                result = sync_get_field_value(type, ids[i], items[j]);
+                field = decode_field_value(result);
+                if (items[j]  < count) {
+                    switch (sync) {
+                        case ALC_SYNC_CALENDAR:
+                            printf ("  %s:", alc_calendar_field_names[items[j]]);
+                            break;
+                        case ALC_SYNC_TODO:
+                            printf ("  %s:", alc_todo_field_names[items[j]]);
+                            break;
+                        case ALC_SYNC_CONTACTS:
+                            printf ("  %s:", alc_contacts_field_names[items[j]]);
+                            break;
+                    }
+                } else {
+                    printf(" UNKNOWN(%02d): ",items[j]);
                 }
-            } else {
-                printf(" UNKNOWN(%02d): ",items[j]);
-            }
-            if (field == NULL) {
-                printf ("UNKNOWN TYPE (%02X %02X)\n", result[1], result[2]);
-            } else {
-                switch (field->type) {
-                    case _date:
-                        printf ("%02d. %02d. %4d\n", ((DATE *)(field->data))->day, 
-                                ((DATE *)(field->data))->month, 
-                                ((DATE *)(field->data))->year);
-                        break;
-                    case _time:
-                        printf ("%02d:%02d:%02d\n", ((TIME *)(field->data))->hour, 
-                                ((TIME *)(field->data))->minute, 
-                                ((TIME *)(field->data))->second);
-                        break;
-                    case _string:
-                        printf("%s\n", (char *)(field->data));
-                        break;
-                    case _phone:
-                        printf("%s\n", (char *)(field->data));
-                        break;
-                    case _enum:
-                        printf("%d\n", *(int *)(field->data));
-                        break;
-                    case _bool:
-                        printf("%s\n", *(int *)(field->data) ? "yes" : "no");
-                        break;
-                    case _int:
-                        printf("%d\n", *(int *)(field->data));
-                        break;
-                    case _byte:
-                        printf("%d\n", *(int *)(field->data));
-                        break;
+                if (field == NULL) {
+                    printf ("UNKNOWN TYPE (%02X %02X)\n", result[1], result[2]);
+                } else {
+                    switch (field->type) {
+                        case _date:
+                            printf ("%02d. %02d. %4d\n", ((DATE *)(field->data))->day, 
+                                    ((DATE *)(field->data))->month, 
+                                    ((DATE *)(field->data))->year);
+                            break;
+                        case _time:
+                            printf ("%02d:%02d:%02d\n", ((TIME *)(field->data))->hour, 
+                                    ((TIME *)(field->data))->minute, 
+                                    ((TIME *)(field->data))->second);
+                            break;
+                        case _string:
+                            printf("%s\n", (char *)(field->data));
+                            break;
+                        case _phone:
+                            printf("%s\n", (char *)(field->data));
+                            break;
+                        case _enum:
+                            printf("%d\n", *(int *)(field->data));
+                            break;
+                        case _bool:
+                            printf("%s\n", *(int *)(field->data) ? "yes" : "no");
+                            break;
+                        case _int:
+                            printf("%d\n", *(int *)(field->data));
+                            break;
+                        case _byte:
+                            printf("%d\n", *(int *)(field->data));
+                            break;
+                    }
                 }
+                free(result);
             }
-            free(result);
+            free(items);
         }
-        free(items);
+        free(ids);
+    } else {
+        message(MSG_ERROR, "Can not open sync session!");
     }
-    free(ids);
     
     sync_close_session(type);
     alcatel_detach();
@@ -640,7 +651,7 @@ void write_message() {
 
 void test() {
     FIELD field;
-    char test[] = "TEST";
+    char test[] = "TESTovaci ToDo";
 
     field.type = _string;
     field.data = test;
@@ -649,13 +660,18 @@ void test() {
 
     sync_start_session();
 
-    sync_select_type(ALC_SYNC_TYPE_TODO);
-    sync_begin_read(ALC_SYNC_TODO);
+    if (sync_select_type(ALC_SYNC_TYPE_TODO) == 0) {
+        sync_begin_read(ALC_SYNC_TODO);
 
-    sync_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
-//    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
+        sync_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
+        sync_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
+//int sync_create_field(alc_type type, int field, FIELD *data) {
+    //    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
 
-    sync_commit(ALC_SYNC_TYPE_TODO);
+        sync_commit(ALC_SYNC_TYPE_TODO);
+    } else {
+        message(MSG_ERROR, "Can not open sync session!");
+    }
     
     sync_close_session(ALC_SYNC_TYPE_TODO);
     alcatel_detach();
