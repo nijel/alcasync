@@ -146,6 +146,9 @@ struct AlcatelTimeStruct {
  *          protocol that is used, try to find out which packet was send
  *          before and what action failed and they either try to find error
  *          or try to contact author to help you with it
+ *  0x13 = closing of nonexistent session
+ *  0x0C = bad dbid/item id
+ *  0x2A = nonexistant field/item id
  *
  *  other values are also possible...
  */
@@ -163,6 +166,16 @@ bool alcatel_done(void);
  * (length len, \0 is not treated as end) */
 void alcatel_send_packet(alc_type type, alc_type *data, alc_type len);
 
+/** receives ack from mobile
+ */
+alc_type *alcatel_recv_ack(alc_type type);
+
+/** receives data from mobile
+ *
+ * @param if true, packet is acknowledged
+ */
+alc_type *alcatel_recv_packet(bool ack);
+    
 /** attach to mobile, this must be used before any action
  */
 bool alcatel_attach(void);

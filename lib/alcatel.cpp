@@ -189,7 +189,7 @@ void alcatel_recv_shorten(int size) {
     memmove(recv_buffer, recv_buffer + size, recv_buffer_pos);
 }
 
-alc_type *alcatel_recv_packet(int ack) {
+alc_type *alcatel_recv_packet(bool ack) {
     alc_type *data;
     alc_type num;
     alc_type size;

@@ -10,13 +10,13 @@ install: compile
 #	cp settty/settty /usr/local/bin
 
 clean:
-	cd lib; make clean
-	cd settty; make clean
-	cd alcademo; make clean
-	cd alcatest; make clean
+	cd lib && make clean
+	cd settty && make clean
+	cd alcademo && make clean
+	cd alcatest && make clean
 
 compile:
-	cd lib ; make
-	cd settty ; make
-	cd alcademo ; make
-	cd alcateso ; make
+	cd lib && make
+	cd settty && make
+	cd alcademo && make
+	cd alcatest && make
