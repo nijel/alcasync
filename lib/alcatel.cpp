@@ -71,7 +71,7 @@ char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20] = {
     "City",
     "State",
     "Zip",
-    "Coutry",
+    "Country",
     "Custom1",
     "Custom2",
     "Custom3",
@@ -99,9 +99,9 @@ char alc_calendar_field_names[ALC_CALENDAR_FIELDS][20] = {
     "Frequency",
     "StartDate",
     "StopDate",
-    /* Following two were created by IntelliSync, but it couldn't read it back... */
-    "KNOWN UNKNOWN (20)",    /* this contains date, probably same as AlarmDate */
-    "KNOWN UNKNOWN (21)"     /* this contains time, probably same as AlarmTime */
+    /* Following two used when EventType is alarm */
+    "AlarmDate2",
+    "AlarmTime2"
 };
 
 char alc_todo_field_names[ALC_TODO_FIELDS][20] = {
@@ -365,6 +365,7 @@ int sync_select_type(alc_type type) {
 //    free(alcatel_recv_packet(1));
 
     answer = alcatel_recv_packet(1);
+    if (!answer) return -1;
 
     result = answer[8];
     
@@ -395,6 +396,7 @@ int *sync_get_ids(alc_type type) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
+    if (!data) return NULL;
 
     count = data[10];
 
@@ -423,6 +425,7 @@ int *sync_get_fields(alc_type type, int item) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
+    if (!data) return NULL;
 
     count = data[14];
 
@@ -448,6 +451,7 @@ alc_type *sync_get_field_value(alc_type type, int item, int field) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
+    if (!data) return NULL;
 
     len = data[4] - 10; 
 

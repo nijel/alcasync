@@ -96,6 +96,16 @@
 #define ALC_CALENDAR_FIELDS 22
 #define ALC_TODO_FIELDS     9
 
+/* max count of categories (probably is smaller) */
+#define ALC_MAX_CATEGORIES  255 /* TODO: this should be examined more exactly */
+
+/* calendar event types */
+#define ALC_CALENDAR_APPOINTMENT    0
+#define ALC_CALENDAR_BIRTHDAY       2
+#define ALC_CALENDAR_CALL           3
+#define ALC_CALENDAR_ALARM          4
+#define ALC_CALENDAR_REPEATING      9
+
 /* types of return values */
 typedef enum {
 /*  name           stored as */    
