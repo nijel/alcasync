@@ -11,7 +11,7 @@
  * code correctly. This code assumes following conditions:
  *  - no packet is lost
  *  - 0x0F ack doesn't mean anything important
- *  - data will be recieved as they are expected
+ *  - data will be received as they are expected
  *  - no error will appear in transmission
  *  - all string are given in form that works in mobile and also in C
  *  - all magic numbers mean that, what I thing that they mean ;-)
@@ -29,7 +29,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -174,7 +174,7 @@ int alcatel_recv_data(int size) {
             message(MSG_DEBUG2,"Receive failed (%d): %s", result, strerror(errno));
             usleep(SLEEP_FAIL);
             fails ++;
-            if (fails > 100) {
+            if (fails > 200) {
                 message(MSG_ERROR,"Reading failed...");
                 return false;
             }
@@ -297,7 +297,9 @@ bool alcatel_init(void){
     message(MSG_DETAIL,"Entering Alcatel binary mode");
     modem_cmd("AT+IFC=2,2\r",answer,sizeof(answer),100,0);
     modem_cmd("AT+CPROT=16,\"V1.0\",16\r",answer,sizeof(answer),100,"CONNECT");
+    modem_flush();
     message(MSG_DEBUG,"Alcatel binary mode started");
+
     alcatel_send_packet(ALC_CONNECT,0,0);
     data = alcatel_recv_ack(ALC_CONNECT_ACK);
     if (data == NULL) {

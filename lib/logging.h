@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -41,7 +41,7 @@ extern int  msg_level;
 
 /** Prints message to stderr
  */
-void message(int severity,char* format, ...);
+void message(int severity,const char* format, ...);
 
 /** Replace special chars with escape sequences, like new line is replaced by \n
  */

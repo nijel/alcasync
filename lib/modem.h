@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -53,7 +53,7 @@ extern char initstring[100];
  *   timeout - how long to wait (*0.1 seconds)
  *   expect - expected string
  */
-extern int modem_cmd(char* command,char* answer,int max,int timeout,char* expect);
+extern int modem_cmd(const char* command,char* answer,int max,int timeout,const char* expect);
 
 /** Writes raw data to modem
  */
@@ -79,4 +79,7 @@ extern int modem_open(void);
   */
 extern void modem_close(void);
 
+/** Flushes modem I/O
+  */
+extern void modem_flush(void);
 #endif

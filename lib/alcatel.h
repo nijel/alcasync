@@ -11,7 +11,7 @@
  * code correctly. This code assumes following conditions:
  *  - no packet is lost
  *  - 0x0F ack doesn't mean anything important
- *  - data will be recieved as they are expected
+ *  - data will be received as they are expected
  *  - no error will appear in transmission
  *  - all string are given in form that works in mobile and also in C
  *  - all magic numbers mean that, what I thing that they mean ;-)
@@ -29,7 +29,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */

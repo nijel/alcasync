@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -48,7 +48,7 @@ int delete_message(int which) {
 	return 1;
 }
 
-MessageData *get_messages(int state = MESSAGE_ALL) {
+MessageData *get_messages(int state) {
     char buffer[10000];
     char *data;
     int count = 0;

@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -114,7 +114,7 @@ int pdu2str(char *pdu, char *str, int charset_conv) {
         if (charset_conv)
             str[charcounter]=gsm2ascii(c);
         else if (c==0)
-            str[charcounter]=183;
+            str[charcounter]=(unsigned char)183;
         else
             str[charcounter]=c;
     }

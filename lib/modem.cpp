@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -77,7 +77,12 @@ int modem_read_raw(unsigned char *buffer,int len) {
     return read(modem, buffer, len);
 }
 
-int modem_cmd(char* command,char* answer,int max,int timeout,char* expect) {
+void modem_flush(void) {
+    tcdrain(modem);
+}
+
+
+int modem_cmd(const char* command,char* answer,int max,int timeout,const char* expect) {
     int count=0;
     int readcount;
     int toread;

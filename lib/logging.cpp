@@ -16,7 +16,7 @@
  * more details.
  *
  * In addition to GNU GPL this code may be used also in non GPL programs but
- * if and only if programmer/distributor of that code recieves written
+ * if and only if programmer/distributor of that code receives written
  * permission from author of this code.
  *
  */
@@ -45,7 +45,7 @@ char msg_level_info[][8] = {
         "ERROR"
 };
 
-void message(int severity,char* format, ...)
+void message(int severity,const char* format, ...)
 {
     va_list argp;
     char text[10000];
