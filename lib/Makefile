@@ -1,7 +1,8 @@
 # Makefile
 
 CC_FLAGS = -Wall
-CC = g++ $(CC_FLAGS)
+CC = g++-3.2 $(CC_FLAGS)
+CXX = g++-3.2 $(CC_FLAGS)
 
 OBJ = logging.o modem.o common.o mobile_info.o charset.o pdu.o sms.o alcatel.o
 

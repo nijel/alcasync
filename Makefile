@@ -20,3 +20,6 @@ compile:
 	cd settty && make
 	cd alcademo && make
 	cd alcatest && make
+    
+tags: $(shell find . -name '*.[ch]' -o -name '*.cpp')
+	ctags $(shell find . -name '*.[ch]' -o -name '*.cpp')

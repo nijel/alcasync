@@ -1,7 +1,7 @@
 # Makefile
 
 CC_FLAGS = -Wall
-CC = gcc $(CC_FLAGS)
+CC = g++-3.2 $(CC_FLAGS)
 
 all: settty
 
