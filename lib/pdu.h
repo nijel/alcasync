@@ -25,6 +25,27 @@
 #define PDU_H
 #include <time.h>
 
+#define NUM_NAT 0x81 /* phone number type for non-'+' (national) numbers */
+#define NUM_INT 0x91 /* phone number type for numbers prefixed by '+' (international) */
+
+#define NUM_TYPE_INT 0x9
+#define NUM_TYPE_NAT 0xA
+#define NUM_TYPE_CHR 0xD
+
+/*
+number types:
+
+1 0 0 0		Unknown
+1 0 0 1		International number
+1 0 1 0		National number
+1 0 1 1		Network specific number
+1 1 0 0		Subscriber number
+1 1 0 1		Alphanumeric, (coded according to GSM TS 03.38 7?bit default alphabet)
+1 1 1 0		Abbreviated number
+1 1 1 1		Reserved for extension
+*/
+
+
 /* message classes (fot make_pdu) */
 #define PDU_CLASS_FLASH     0
 #define PDU_CLASS_MOBILE    1

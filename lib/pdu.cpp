@@ -31,6 +31,7 @@
 #include "common.h"
 #include "mobile.h"
 #include "charset.h"
+#include "logging.h"
 
 int str2pdu(char *str, char *pdu, int charset_conv) {
     char numb[500];
@@ -137,6 +138,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     int Length;
     int padding;
     int type;
+    char buf[100];
     char *Pointer;
     char numb[]="00";
     struct tm time;
@@ -149,6 +151,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     if (Length>0)
     {
         type = octet2bin(pdu + 2);
+        padding=Length%2;
         Pointer=pdu+4;
         strncpy(smsc,Pointer,Length);
         swapchars(smsc);
@@ -157,17 +160,18 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
             smsc[Length-1]=0;
         else
             smsc[Length]=0;
-        if (type == NUM_INT) {
-            memmove(smsc + 1, smsc, strlen(smsc));
-            smsc[0] = '+';
+        switch (type >> 4) {
+            case NUM_TYPE_INT:
+                memmove(sendr + 1, sendr, strlen(sendr));
+                smsc[0] = '+';
+                break;
+            case NUM_TYPE_CHR:
+                sprintf (buf, "%02X", (Length+padding)/2);
+                strncpy(smsc,Pointer,Length+padding);
+                strcat(buf, smsc);
+                pdu2str(buf, smsc, 1);
+                break;
         }
-/* TODO:
- * Decode correctly this: (from: type=145 (int) num=*Hlas)
- * A242B3C370
- * 2A243B3C07
- * * H l a s          vvvvvvvvvv
-07912460305002000409D02A243B3C0700002020017185054033D6F0BC0CB2BFD9E230280882CBDF206DBAED4E83DEEC7C1B9E56CFD765105A9E0789F3EC30082E4FABC3F4B00B
-*/
     }
     Pointer=pdu+Length+4;
     if (octet2bin(Pointer) == 0x11) {
@@ -179,9 +183,17 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         strncpy(sendr,Pointer,Length+padding);
         swapchars(sendr);
         sendr[Length]=0;
-        if (type == NUM_INT) {
-            memmove(sendr + 1, sendr, strlen(sendr));
-            sendr[0] = '+';
+        switch (type >> 4) {
+            case NUM_TYPE_INT:
+                memmove(sendr + 1, sendr, strlen(sendr));
+                smsc[0] = '+';
+                break;
+            case NUM_TYPE_CHR:
+                sprintf (buf, "%02X", (Length+padding)/2);
+                strncpy(sendr,Pointer,Length+padding);
+                strcat(buf, sendr);
+                pdu2str(buf, sendr, 1);
+                break;
         }
         Pointer += Length + padding + 6;
         *date = -1;
@@ -194,9 +206,17 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         strncpy(sendr,Pointer,Length+padding);
         swapchars(sendr);
         sendr[Length]=0;
-        if (type == NUM_INT) {
-            memmove(sendr + 1, sendr, strlen(sendr));
-            sendr[0] = '+';
+        switch (type >> 4) {
+            case NUM_TYPE_INT:
+                memmove(sendr + 1, sendr, strlen(sendr));
+                smsc[0] = '+';
+                break;
+            case NUM_TYPE_CHR:
+                sprintf (buf, "%02X", (Length+padding)/2);
+                strncpy(sendr,Pointer,Length+padding);
+                strcat(buf, sendr);
+                pdu2str(buf, sendr, 1);
+                break;
         }
         Pointer=Pointer+Length+padding+4; // skip protocol and coding scheme
         /* extract date */
