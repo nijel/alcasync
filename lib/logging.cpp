@@ -70,7 +70,7 @@ const char *reform(const char *s,int slot) {
         size_t l;
     } arr[3];
     char c,*d;
-    struct formslot *fs;
+    formslot *fs;
 
     assert((slot>=0) && (slot<NELEM(arr)));
     if (!s) return("<unset>");
@@ -107,7 +107,7 @@ const char *hexdump(const unsigned char *s, int size,int slot) {
     } arr[3];
     char c,*d;
     int i=0;
-    struct formslot *fs;
+    formslot *fs;
 
     assert(slot>=0 && slot<NELEM(arr));
     if (!s) return("<unset>");

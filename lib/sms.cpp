@@ -73,7 +73,7 @@ MessageData *get_smss(int state = MESSAGE_ALL) {
     message(MSG_INFO,"Read %d messages", count);
 
     /* allocate array for storing messages */
-    mesg = (MessageData *)malloc((count + 1) * sizeof(struct MessageData));
+    mesg = (MessageData *)malloc((count + 1) * sizeof(MessageData));
     chk(mesg);
     mesg[count].pos = -1; /* end symbol */
 
@@ -110,7 +110,7 @@ MessageData *get_sms(int which) {
     if (modem_cmd(raw,buffer,sizeof(buffer)-1,50,0)==0) return NULL;
 
     /* allocate array for storing message */
-    mesg = (MessageData *)malloc(sizeof(struct MessageData));
+    mesg = (MessageData *)malloc(sizeof(MessageData));
     chk(mesg);
 
 

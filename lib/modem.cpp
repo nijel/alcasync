@@ -151,7 +151,7 @@ int modem_cmd(char* command,char* answer,int max,int timeout,char* expect) {
 }
 
 void modem_setup(void) {
-    struct termios newtio;
+    termios newtio;
 	
     bzero(&newtio, sizeof(newtio));
     newtio.c_cflag = baudrate|CS8|CREAD|HUPCL|CRTSCTS;

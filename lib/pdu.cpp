@@ -141,7 +141,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     char buf[100];
     char *Pointer;
     char numb[]="00";
-    struct tm time;
+    tm time;
 
     sendr[0]=0;
     ascii[0]=0;
@@ -285,7 +285,7 @@ void make_pdu_smsc(char *smsc, char* number, char* message, int deliv_report, in
     char *pdu_number, *pdu_smsc;
     char *msg;
     char stime[13];
-    struct tm *stamp;
+    tm *stamp;
     time_t t;
     
     t = time(NULL);

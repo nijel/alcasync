@@ -198,7 +198,7 @@ alc_type *sync_get_field_value(alc_type type, int item, int field);
 
 /** Decodes raw field value to FIELD structure.
  */
-struct AlcatelFieldStruct *decode_field_value(alc_type *buffer);
+AlcatelFieldStruct *decode_field_value(alc_type *buffer);
 
 /** Returns array with ids of categories. First item in array contains length
  * of it. */
@@ -222,9 +222,9 @@ void sync_del_obj_list_items(alc_type type, alc_type list);
 
 /** Updates field
  */
-int sync_update_field(alc_type type, int item, int field, struct AlcatelFieldStruct *data);
+int sync_update_field(alc_type type, int item, int field, AlcatelFieldStruct *data);
 
 /** Creates field, after creating all fields for new record call @ref sync_commit
  */
-int sync_create_field(alc_type type, int field, struct AlcatelFieldStruct *data);
+int sync_create_field(alc_type type, int field, AlcatelFieldStruct *data);
 #endif
