@@ -1,5 +1,5 @@
 /*
- * alcatool/sms.h
+ * alcasync/sms.h
  *
  * sms reading/writing functions
  *
@@ -74,11 +74,15 @@ MessageData *get_messages(int state = MESSAGE_ALL);
 
 /** Sends message
   */
-int send_message(char *pdu);
+int send_message(const char *pdu);
+
+/** Sends message allready stored in mobile
+  */
+int send_message(int position);
 
 /** Store message
   */
-int put_message(char *pdu, int state);
+int put_message(const char *pdu, int state);
 
 /** Returns SMSC (Short Messages Service Centre)
   */

@@ -1,5 +1,5 @@
 /*
- * alcatool/logging.cpp
+ * alcasync/logging.cpp
  *
  * loging functions with configurable verbosity
  *
@@ -50,14 +50,14 @@ void message(int severity,const char* format, ...)
     va_list argp;
     char text[10000];
     va_start(argp,format);
-    vsnprintf(text,sizeof(text),format,argp);
+    vsnprintf(text,sizeof(text)-1,format,argp);
     va_end(argp);
     if (severity>=msg_level) {
         if (msg_level > MSG_INFO || severity != MSG_INFO) {
             fprintf(stderr,"%s: %s\n", msg_level_info[severity], text);
         } else {
             fprintf(stderr,"%s\n", text);
-        } 
+        }
     }
 }
 
@@ -92,7 +92,7 @@ const char *reform(const char *s,int slot) {
             case '\032': *d++='Z'; break;
             case '\033': *d++='e'; break;
             default:
-                d+=sprintf(d,"x%02X",(unsigned char)c);
+                d+=sprintf(d, "x%02X",(unsigned char)c);
                 break;
         }
     }

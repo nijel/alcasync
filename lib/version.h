@@ -1,7 +1,7 @@
 /*
- * alcatool/version.h
+ * alcasync/version.h
  *
- * version information about alcatool
+ * version information about alcasync
  *
  * Copyright (c) 2002 by Michal Cihar <cihar@email.cz>
  *
@@ -24,8 +24,8 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define ALCATOOL_VERSION     "0.2.1 ALPHA"
-#define ALCATOOL_NAME        "AlcaTool"
-#define ALCATOOL_COPYRIGHT   "2002 Michal Cihar"
+#define ALCASYNC_VERSION     "0.3 BETA"
+#define ALCASYNC_NAME        "AlcaSync"
+#define ALCASYNC_COPYRIGHT   "2002 Michal Cihar"
 
 #endif

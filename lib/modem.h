@@ -1,5 +1,5 @@
 /*
- * alcatool/modem.h
+ * alcasync/modem.h
  *
  * modem initialization, commands and closing
  *
@@ -31,12 +31,14 @@
 #define ERR_MDM_LOCK        3
 #define ERR_MDM_OPEN        4
 #define ERR_MDM_LOCK_OPEN   5
+#define ERR_MDM_WRITE       6
 
 extern int modem_errno;
 
 //int modem;
 extern int rate;
 extern int baudrate;
+extern bool modem_rtscts;
 
 extern char device[100];
 extern char lockname[100];

@@ -1,5 +1,5 @@
 /*
- * alcatool/mobile_info.cpp
+ * alcasync/mobile_info.cpp
  *
  * acquire information about mobile
  *

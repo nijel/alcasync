@@ -1,5 +1,5 @@
 /*
- * alcatool/charset.h
+ * alcasync/charset.h
  *
  * gsm character conversion
  *

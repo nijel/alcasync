@@ -1,5 +1,5 @@
 /*
- * alcatool/common.h
+ * alcasync/common.h
  *
  * some common functions
  *

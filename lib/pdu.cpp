@@ -1,5 +1,5 @@
 /*
- * alcatool/pdu.cpp
+ * alcasync/pdu.cpp
  *
  * PDU decoding/encoding
  *
@@ -33,7 +33,7 @@
 #include "charset.h"
 #include "logging.h"
 
-int str2pdu(char *str, char *pdu, int charset_conv) {
+int str2pdu(const char *str, char *pdu, int charset_conv) {
     char numb[500];
     char octett[10];
     int pdubitposition;
@@ -70,7 +70,7 @@ int str2pdu(char *str, char *pdu, int charset_conv) {
     return pdubyteposition;
 }
 
-int octet2bin(char* octet) {
+int octet2bin(const char* octet) {
     int result=0;
     if (octet[0]>57)
         result+=octet[0]-55;
@@ -84,7 +84,7 @@ int octet2bin(char* octet) {
     return result;
 }
 
-int pdu2str(char *pdu, char *str, int charset_conv) {
+int pdu2str(const char *pdu, char *str, int charset_conv) {
     int bitposition=0;              
     int byteposition;
     int byteoffset;
@@ -134,12 +134,12 @@ void swapchars(char* string) {
     }
 }
 
-int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
+int split_pdu(const char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
     int Length;
     int padding;
     int type;
     char buf[100];
-    char *Pointer;
+    const char *Pointer;
     char numb[]="00";
     tm time;
 
@@ -174,7 +174,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         }
     }
     Pointer=pdu+Length+4;
-    if (octet2bin(Pointer) == 0x11) {
+    if (octet2bin(Pointer) & 0x11 == 0x11) { /* TODO: this is currently only some magic, should work more exactly ...*/
         Pointer += 4;
         Length=octet2bin(Pointer);
         padding=Length%2;
@@ -186,7 +186,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         switch (type >> 4) {
             case NUM_TYPE_INT:
                 memmove(sendr + 1, sendr, strlen(sendr) + 1);
-                smsc[0] = '+';
+                sendr[0] = '+';
                 break;
             case NUM_TYPE_CHR:
                 sprintf (buf, "%02X", (Length+padding)/2);
@@ -248,7 +248,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
 }
 
 
-char *make_pdu_number(char *number, int add) {
+char *make_pdu_number(const char *number, int add) {
     char *result;
     char tmp[100];
     int num_type, num_len;
@@ -279,7 +279,7 @@ char *make_pdu_number(char *number, int add) {
 }
 
 
-void make_pdu_smsc(char *smsc, char* number, char* message, int deliv_report, int pdu_class, char* pdu) {
+void make_pdu_smsc(const char *smsc, const char *number, const char *message, int deliv_report, int pdu_class, char *pdu) {
     /* this currently doesn't work as expected ... */
     char pdu_msg[500];
     char *pdu_number, *pdu_smsc;
@@ -311,7 +311,7 @@ void make_pdu_smsc(char *smsc, char* number, char* message, int deliv_report, in
     sprintf(pdu, "%s00%s0000%s00%02X%s", pdu_smsc, pdu_number, stime, strlen(msg), pdu_msg);
 }
 
-void make_pdu(char* number, char* message, int deliv_report, int pdu_class, char* pdu) {
+void make_pdu(const char *number, const char *message, int deliv_report, int pdu_class, char *pdu) {
     char pdu_msg[500];
     char *pdu_number;
     char *msg;
@@ -322,11 +322,11 @@ void make_pdu(char* number, char* message, int deliv_report, int pdu_class, char
     msg = strndup(message,PDU_MAXBODYLEN);
 
     pdu_type = 16 + 1; /* Validity Field + SMS-Submit MS to SMSC */
-				/* 64 = user data */
+                /* 64 = user data */
     pdu_coding_scheme = 240 + 0 + pdu_class; /* Dummy + 7 Bit + Class */
-						/* 4 = 8 Bit */
-	if (deliv_report)
-		pdu_type = pdu_type + 32; /* Request Status Report */
+                            /* 4 = 8 Bit */
+    if (deliv_report)
+        pdu_type = pdu_type + 32; /* Request Status Report */
 
     str2pdu(msg, pdu_msg, 1);
 
