@@ -100,8 +100,8 @@ char alc_calendar_field_names[ALC_CALENDAR_FIELDS][20] = {
     "StartDate",
     "StopDate",
     /* Following two were created by IntelliSync, but it couldn't read it back... */
-    "KNOWN UNKNOWN (21)",    /* this contains date, probably same as AlarmDate */
-    "KNOWN UNKNOWN (22)"     /* this contains time, probably same as AlarmTime */
+    "KNOWN UNKNOWN (20)",    /* this contains date, probably same as AlarmDate */
+    "KNOWN UNKNOWN (21)"     /* this contains time, probably same as AlarmTime */
 };
 
 char alc_todo_field_names[ALC_TODO_FIELDS][20] = {
@@ -159,7 +159,7 @@ void alcatel_send_packet(alc_type type, alc_type *data, alc_type len) {
     modem_send_raw(buffer, size); 
 }
 
-void alcatel_recv_data(int size) {
+int alcatel_recv_data(int size) {
     int result, fails = 0;
     message(MSG_DEBUG2,"We have %d bytes, we want %d bytes", recv_buffer_pos, size);
     while (recv_buffer_pos < size) { 
@@ -172,13 +172,14 @@ void alcatel_recv_data(int size) {
             message(MSG_DEBUG2,"Receive failed (%d): %s", result, strerror(errno));
             usleep(SLEEP_FAIL);
             fails ++;
-            if (fails > 50) {
-                message(MSG_ERROR,"Reading failed, sorry, shutting down...");
-                exit(10);
+            if (fails > 100) {
+                message(MSG_ERROR,"Reading failed...");
+                return false;
+//                exit(10);
             }
         }
-        
     }
+    return true;
 }
 
 void alcatel_recv_shorten(int size) {
@@ -192,7 +193,7 @@ alc_type *alcatel_recv_packet(int ack) {
     alc_type size;
     int wanted_size;
 
-    alcatel_recv_data(5); /* 5 is minimal size of packet */
+    if (!alcatel_recv_data(5)) return NULL; /* 5 is minimal size of packet */
     
     if (recv_buffer[0] != 0x7e)
         message(MSG_ERROR, "Bad data? %s", hexdump(recv_buffer, recv_buffer_pos, 1));
@@ -205,7 +206,7 @@ alc_type *alcatel_recv_packet(int ack) {
     size = recv_buffer[4];
     wanted_size = size + 6;
 
-    alcatel_recv_data(wanted_size);
+    if (!alcatel_recv_data(wanted_size)) return NULL;
     
     message(MSG_DEBUG,"Received packet %s", hexdump(recv_buffer, wanted_size, 1));
 
@@ -228,7 +229,7 @@ alc_type *alcatel_recv_ack(alc_type type){
     int wanted_size;
     int once_again = 0;
 
-    alcatel_recv_data(3); /* 3 is minimal size of ack */
+    if (!alcatel_recv_data(3)) return NULL; /* 3 is minimal size of ack */
 
     if (recv_buffer[0] != 0x7e)
         message(MSG_ERROR, "Bad data? %s", hexdump(recv_buffer, recv_buffer_pos, 1));
@@ -268,7 +269,7 @@ alc_type *alcatel_recv_ack(alc_type type){
     if (recv_buffer[1] != type && recv_buffer[1] != ALC_CONTROL_ACK)
             message(MSG_WARNING,"Received another ack than expected! (recv: %02X, expect: %02X)", recv_buffer[1], type);
 
-    alcatel_recv_data(wanted_size); 
+    if (!alcatel_recv_data(wanted_size)) return NULL;
     
     message(MSG_DEBUG,"Received ack %s", hexdump(recv_buffer, wanted_size, 1));
 

@@ -43,7 +43,8 @@ void modem_setup(void) {
     struct termios newtio;
 	
     bzero(&newtio, sizeof(newtio));
-    newtio.c_cflag = baudrate|CS8|CREAD|HUPCL|CRTSCTS;
+//    newtio.c_cflag = baudrate|CS8|CREAD|HUPCL|CRTSCTS;
+    newtio.c_cflag = baudrate|CS7|PARENB|PARODD|CREAD|HUPCL|CRTSCTS;
     newtio.c_iflag = IGNBRK;
     newtio.c_oflag = 0;
     newtio.c_lflag = 0;
