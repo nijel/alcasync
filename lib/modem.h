@@ -26,10 +26,11 @@
 
 #include <termios.h>
 
-#define ERR_MDM_PDU     1
-#define ERR_MDM_AT      2
-#define ERR_MDM_LOCK    3
-#define ERR_MDM_OPEN    4
+#define ERR_MDM_PDU         1
+#define ERR_MDM_AT          2
+#define ERR_MDM_LOCK        3
+#define ERR_MDM_OPEN        4
+#define ERR_MDM_LOCK_OPEN   5
 
 extern int modem_errno;
 

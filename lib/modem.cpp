@@ -30,6 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "modem.h"
 #include "logging.h"
@@ -251,7 +252,7 @@ void modem_set_smsc(char *smsc) {
 }
 
 int modem_open(void) {
-    int pid;
+    int pid, i;
     FILE *lock;
 
     message(MSG_INFO,"Checking lock for modem %s",lockname);
@@ -269,12 +270,23 @@ int modem_open(void) {
         }
         fclose(lock);
     }
-    lock = fopen(lockname,"w");
+
+    i = unlink(lockname);
+
+    if (i && errno != ENOENT)
+        message(MSG_WARNING,"Failder lock unlink: %d (%s)\n", errno, strerror(errno));
+
+    if (!(lock = fopen(lockname,"w"))) {
+        message(MSG_ERROR,"Can not open lock file for writing!", lockname);
+        modem_errno = ERR_MDM_LOCK_OPEN;
+        return 0;
+    }
     fprintf(lock,"%08d",(int)getpid());
     fclose(lock);
         
     
     message(MSG_INFO,"Opening modem %s",device);
+
     modem = open(device, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
     if (modem <0) {
         perror(device);

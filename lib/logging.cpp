@@ -48,7 +48,7 @@ char msg_level_info[][8] = {
 void message(int severity,char* format, ...)
 {
     va_list argp;
-    char text[1024];
+    char text[10000];
     va_start(argp,format);
     vsnprintf(text,sizeof(text),format,argp);
     va_end(argp);

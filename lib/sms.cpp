@@ -73,7 +73,7 @@ SMS *get_smss(int state = SMS_ALL) {
     message(MSG_INFO,"Read %d messages", count);
     
     /* allocate array for storing messages */
-    mesg = (SMS *)malloc((count + 1) * (sizeof(SMS)));
+    mesg = (SMS *)malloc((count + 1) * sizeof(SMS));
     chk(mesg);
     mesg[count].pos = -1; /* end symbol */
 
@@ -85,10 +85,11 @@ SMS *get_smss(int state = SMS_ALL) {
         data = strchr(data, '\n');
         sscanf(data,"\n%s\n",raw);
         split_pdu(raw, sendr, &(mesg[count].date), ascii, smsc);
-        mesg[count].raw = strdup(raw);
-        mesg[count].sendr = strdup(sendr);
-        mesg[count].ascii = strdup(ascii);
-        mesg[count].smsc = strdup(smsc);
+        chk(mesg[count].raw = strdup(raw));
+        chk(mesg[count].sendr = strdup(sendr));
+        chk(mesg[count].ascii = strdup(ascii));
+        message(MSG_DEBUG2, "Message %d (raw): %s \"%s\"", mesg[count].pos, mesg[count].sendr, mesg[count].ascii);
+        chk(mesg[count].smsc = strdup(smsc));
         count++;
     }
 
