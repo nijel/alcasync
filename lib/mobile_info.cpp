@@ -160,6 +160,10 @@ void get_string(const char *cmd, char *data, int len){
     loc1 = strchr(buffer,'\n');
     if (loc1 != NULL) {
         loc1++;
+        loc1 = strchr(loc1,'\n');
+    }
+    if (loc1 != NULL) {
+        loc1++;
         loc2 = strchr(loc1,'\r');
         loc2[0] = '\0';
         strncpy(data,loc1,len-1);
