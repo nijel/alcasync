@@ -445,31 +445,38 @@ bool alcatel_begin_transfer(alc_type type) {
 int *alcatel_get_ids(alc_type type) {
     alc_type buffer[] = {0x00, 0x04, type, 0x2F, 0x01};
     alc_type *data;
-    int *result;
-    int count = 0, i, pos;
+    int *result = NULL;
+    int count = 0,size =0, i, pos;
+    bool isLast = false;
     
     alcatel_send_packet(ALC_DATA, buffer, 5); 
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
-    data = alcatel_recv_packet(1);
-    if (data==NULL) {
-        alcatel_errno = ALC_ERR_DATA;
-        return NULL;
+
+    while (!isLast) {
+        data = alcatel_recv_packet(1);
+        if (data==NULL) {
+            alcatel_errno = ALC_ERR_DATA;
+            return NULL;
+        }
+
+        count = data[10];
+        size += count;
+
+        result = (int *)realloc(result, (size + 1)* sizeof(int));
+        chk(result);
+
+        result[0] = size;
+
+        for (i = 0; i < count; i++) {
+            pos = 11 + (4 * i);
+            result[size - count + i + 1] = data[pos + 3] + (data[pos + 2] << 8) + (data[pos + 1] << 16) + (data[pos] << 24);
+        }
+
+        isLast = data[4 + data[4]] == 0;
+
+        free(data);
     }
-
-    count = data[10];
-
-    result = (int *)malloc((count + 1)* sizeof(int));
-    chk(result);
-
-    result[0] = count;
-
-    for (i = 0; i < count; i++) {
-        pos = 11 + (4 * i);
-        result[i + 1] = data[pos + 3] + (data[pos + 2] << 8) + (data[pos + 1] << 16) + (data[pos] << 24);
-    }
-
-    free(data);
 
     return result;
 }
