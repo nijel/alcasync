@@ -120,7 +120,7 @@ int recv_buffer_pos = 0;
 
 void alcatel_send_packet(alc_type type, alc_type *data, alc_type len) {
     static alc_type buffer[1024];
-    int size, i, xor = 0;
+    int size = 0, i, xor = 0;
     buffer[0] = 0x7E;
     buffer[1] = type;
     switch (type) {
