@@ -158,6 +158,7 @@ void help() {
     printf(" 2 - can not open modem\n");
     printf(" 3 - modem not reacting\n");
     printf(" 4 - modem did not accept PDU mode 0\n");
+    printf(" 5 - unknown error while opening modem\n");
     printf(" \n");
 //    printf(" 10 - message not found\n");
     printf(" \n");
@@ -691,10 +692,40 @@ int main(int argc, char *argv[]) {
     message(MSG_INFO, "This is test program for " ALCATOOL_NAME " version " ALCATOOL_VERSION);
     message(MSG_INFO, "Copyright (c) " ALCATOOL_COPYRIGHT);
 
-    modem_open();
+    if (!modem_open()) {
+        switch (modem_errno) {
+            case ERR_MDM_LOCK:
+                message(MSG_ERROR, "Modem locked!");
+                exit(1);
+                break;
+            case ERR_MDM_OPEN:
+                message(MSG_ERROR, "Modem can't be opened!");
+                exit(2);
+                break;
+            default:
+                message(MSG_ERROR, "Unknown error!");
+                exit(5);
+                break;
+        }
+    }
     modem_setup(); 
-    modem_init();
 
+    if (!modem_init()) {
+        switch (modem_errno) {
+            case ERR_MDM_PDU:
+                message(MSG_ERROR, "Failed selecting PDU mode!");
+                exit(4);
+                break;
+            case ERR_MDM_AT:
+                message(MSG_ERROR, "Modem not reacting!");
+                exit(3);
+                break;
+            default:
+                message(MSG_ERROR, "Unknown error!");
+                exit(5);
+                break;
+        }
+    }
     if (action_info) {
         get_manufacturer(data,sizeof(data));
         printf ("Manufacturer: %s\n",data);
