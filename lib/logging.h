@@ -35,11 +35,20 @@
 #define MSG_WARNING 4
 #define MSG_ERROR   5
 
+/** Verbosity level
+ */
 extern int  msg_level;
 
+/** Prints message to stderr
+ */
 void message(int severity,char* format, ...);
 
+/** Replace special chars with escape sequences, like new line is replaced by \n
+ */
 const char *reform(const char *s,int slot);
+
+/** Returns data in hexadeciaml listing
+ */
 const char *hexdump(const unsigned char *s, int size,int slot);
 
 #endif

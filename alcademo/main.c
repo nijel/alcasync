@@ -473,7 +473,7 @@ void list_alc_items(alc_type sync, alc_type type) {
     alc_type *result;
     int i, j;
     int *ids, *items;
-    FIELD *field;
+    AlcatelFieldStruct *field;
 
     int count;
     
@@ -528,14 +528,14 @@ void list_alc_items(alc_type sync, alc_type type) {
                 } else {
                     switch (field->type) {
                         case _date:
-                            printf ("%02d. %02d. %4d\n", ((DATE *)(field->data))->day, 
-                                    ((DATE *)(field->data))->month, 
-                                    ((DATE *)(field->data))->year);
+                            printf ("%02d. %02d. %4d\n", ((AlcatelDateStruct *)(field->data))->day, 
+                                    ((AlcatelDateStruct *)(field->data))->month, 
+                                    ((AlcatelDateStruct *)(field->data))->year);
                             break;
                         case _time:
-                            printf ("%02d:%02d:%02d\n", ((TIME *)(field->data))->hour, 
-                                    ((TIME *)(field->data))->minute, 
-                                    ((TIME *)(field->data))->second);
+                            printf ("%02d:%02d:%02d\n", ((AlcatelTimeStruct *)(field->data))->hour, 
+                                    ((AlcatelTimeStruct *)(field->data))->minute, 
+                                    ((AlcatelTimeStruct *)(field->data))->second);
                             break;
                         case _string:
                             printf("%s\n", (char *)(field->data));
@@ -570,7 +570,7 @@ void list_alc_items(alc_type sync, alc_type type) {
     alcatel_detach();
 }
 
-void print_message(SMS* sms) {
+void print_message(SMSData* sms) {
     if (((*sms).stat == SMS_SENT) || ((*sms).stat == SMS_UNSENT)) {
         printf("To: %s\nSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
             (*sms).sendr,
@@ -590,7 +590,7 @@ void print_message(SMS* sms) {
 }
 
 void list_messages() {
-    SMS *sms;
+    SMSData *sms;
     int i;
     sms = get_smss(SMS_ALL);
     i = 0;
@@ -603,7 +603,7 @@ void list_messages() {
 }
 
 void read_messages() {
-    SMS *sms;
+    SMSData *sms;
     int i;
     for (i = 0; i < action_read_pos; i++){
         sms = get_sms(action_read[i]);
@@ -651,7 +651,7 @@ void write_message() {
 }
 
 void test() {
-    FIELD field;
+    AlcatelFieldStruct field;
     char test[] = "TESTovaci ToDo";
 
     field.type = _string;
@@ -666,7 +666,7 @@ void test() {
 
         sync_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
         sync_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
-//int sync_create_field(alc_type type, int field, FIELD *data) {
+//int sync_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
     //    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
 
         sync_commit(ALC_SYNC_TYPE_TODO);

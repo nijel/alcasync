@@ -42,7 +42,7 @@
 int modem_initialised=0;
 int modem_errno;
 
-int modem;
+int modem=0;
 int rate;
 
 int baudrate;
@@ -51,23 +51,6 @@ char lockname[100];
 char initstring[100];
 
 termios oldtio;
-
-void modem_start_raw(void) {
-//    struct termios newtio;
-	
-    message(MSG_ERROR,"start raw ignored!");
-/*	
-    bzero(&newtio, sizeof(newtio));
-	cfmakeraw(&newtio);
-	cfsetispeed(&newtio, baudrate);
-
-    if (cfsetospeed(&newtio, baudrate)|cfsetispeed(&newtio, baudrate))
-        message(MSG_ERROR,"Setting of termios baudrate failed!");
-
-/    tcflush(modem, TCIOFLUSH);
-    memset(newtio.c_cc, 0xFF, sizeof(newtio.c_cc));
-    tcsetattr(modem,TCSANOW,&newtio);*/
-}
 
 int modem_send_raw(unsigned char *buffer,int len) {
     int i=0,fails=0;
@@ -225,7 +208,7 @@ int modem_init(void) {
 
 // alcatel also supports USC2 but it is used only for contacts on sim card and
 // return values of some commands (at+csca)
-    modem_cmd("at+CSCS=\"GSM\"\r\n", answer, sizeof(answer), 50, NULL);
+    modem_cmd("AT+CSCS=\"GSM\"\r\n", answer, sizeof(answer), 50, NULL);
 
 // why use this??    
 //    message(MSG_DETAIL,"Setting rate");
@@ -246,6 +229,8 @@ int modem_init(void) {
 int modem_open(void) {
     int pid, i;
     FILE *lock;
+
+    if (modem > 0) { return 1; }
 
     message(MSG_INFO,"Checking lock for modem %s",lockname);
     lock = fopen(lockname, "r");

@@ -24,8 +24,12 @@
 #ifndef CHARSET_H
 #define CHARSET_H
 
+/** Converts char from GSM to latin1
+ */
 char ascii2gsm(const char c);
 
+/** Converts char from latin1 to GSM
+ */
 char gsm2ascii(const char c);
 
 #endif

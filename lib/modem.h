@@ -41,39 +41,42 @@ extern int baudrate;
 extern char device[100];
 extern char lockname[100];
 extern char initstring[100];
-//char initstring[100]="AT S7=45 S0=0 L1 V1 X4 &c1 E1 Q0";
-//char modemname[100];
-//char smsc[100];
-//char mode[10];
-//struct termios oldtio;
 
-/* write command to modem and wait for answer until:
-     1. timeout is reached
-     2. OK or ERROR is received
-     3. expected string is received
-   parameters:
-     command - what to execute
-     answer - buffer for answer
-     max - size of answer buffer
-     timeout - how long to wait (*0.1 seconds)
-     expect - expected string
+/** write command to modem and wait for answer until:
+ *   1. timeout is reached
+ *   2. OK or ERROR is received
+ *   3. expected string is received
+ * parameters:
+ *   command - what to execute
+ *   answer - buffer for answer
+ *   max - size of answer buffer
+ *   timeout - how long to wait (*0.1 seconds)
+ *   expect - expected string
  */
-
 extern int modem_cmd(char* command,char* answer,int max,int timeout,char* expect);
 
-extern void modem_start_raw(void);
-
-#define modem_stop_raw() modem_setup()
-
+/** Writes raw data to modem
+ */
 extern int modem_send_raw(unsigned char *buffer,int len);
+
+/** Reads raw data from modem
+ */
 extern int modem_read_raw(unsigned char *buffer,int len);
 
-extern void modem_setup(void); /* setup serial port */
+/** setups serial port
+ */
+extern void modem_setup(void);
 
+/** Initializes modem
+  */
 extern int modem_init(void);
 
-extern int modem_open(void); // Open the serial port
+/** Opens modem and checks for lock
+  */
+extern int modem_open(void);
 
+/** Closes modem and removes lock
+  */
 extern void modem_close(void);
 
 #endif

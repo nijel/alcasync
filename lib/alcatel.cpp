@@ -465,20 +465,20 @@ alc_type *sync_get_field_value(alc_type type, int item, int field) {
     return result;
 }
 
-FIELD *decode_field_value(alc_type *buffer) {
-    DATE *date;
-    TIME *time;
-    FIELD *field;
+struct AlcatelFieldStruct *decode_field_value(alc_type *buffer) {
+    struct AlcatelDateStruct *date;
+    struct AlcatelTimeStruct *time;
+    struct AlcatelFieldStruct *field;
     alc_type *s;
     int *i;
     int j;
 
-    field = (FIELD *)malloc(sizeof(FIELD));
+    field = (struct AlcatelFieldStruct *)malloc(sizeof(struct AlcatelFieldStruct));
     chk(field);
     
     if (buffer[1] == 0x05 && buffer[2] == 0x67) {
         /* date */
-        date = (DATE *)malloc(sizeof(DATE));
+        date = (struct AlcatelDateStruct *)malloc(sizeof(struct AlcatelDateStruct));
         chk(date);
         date->day = buffer[4];
         date->month = buffer[5];
@@ -488,7 +488,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = date;
     } else if (buffer[1] == 0x06 && buffer[2] == 0x68) {
         /* time */
-        time = (TIME *)malloc(sizeof(TIME));
+        time = (struct AlcatelTimeStruct *)malloc(sizeof(struct AlcatelTimeStruct));
         chk(time);
         time->hour = buffer[4];
         time->minute = buffer[5];
@@ -659,7 +659,7 @@ void sync_commit(alc_type type) {
     free(data);
 }
 
-int sync_update_field(alc_type type, int item, int field, FIELD *data) {
+int sync_update_field(alc_type type, int item, int field, struct AlcatelFieldStruct *data) {
     alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 
         0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
     alc_type *answer;
@@ -672,10 +672,10 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
             buffer[13] = 0x05;
             buffer[14] = 0x67;
             buffer[15] = 0x04;
-            buffer[16] = ((DATE *)(data->data))->month;
-            buffer[17] = ((DATE *)(data->data))->day;
-            buffer[18] = ((DATE *)(data->data))->year >> 8;
-            buffer[19] = ((DATE *)(data->data))->year & 0xff;
+            buffer[16] = ((struct AlcatelDateStruct *)(data->data))->month;
+            buffer[17] = ((struct AlcatelDateStruct *)(data->data))->day;
+            buffer[18] = ((struct AlcatelDateStruct *)(data->data))->year >> 8;
+            buffer[19] = ((struct AlcatelDateStruct *)(data->data))->year & 0xff;
             buffer[20] = 0x00;
             break;
         case _time:
@@ -683,9 +683,9 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
             buffer[13] = 0x06;
             buffer[14] = 0x68;
             buffer[15] = 0x03;
-            buffer[16] = ((TIME *)(data->data))->hour;
-            buffer[17] = ((TIME *)(data->data))->minute; 
-            buffer[18] = ((TIME *)(data->data))->second;
+            buffer[16] = ((struct AlcatelTimeStruct *)(data->data))->hour;
+            buffer[17] = ((struct AlcatelTimeStruct  *)(data->data))->minute;
+            buffer[18] = ((struct AlcatelTimeStruct  *)(data->data))->second;
             buffer[19] = 0x00;
             break;
         case _string:
@@ -750,7 +750,7 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
     return result;
 }
 
-int sync_create_field(alc_type type, int field, FIELD *data) {
+int sync_create_field(alc_type type, int field, struct AlcatelFieldStruct *data) {
     alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x25, 0x01, 0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
     alc_type *answer;
     int result;
@@ -761,10 +761,10 @@ int sync_create_field(alc_type type, int field, FIELD *data) {
             buffer[9] = 0x05;
             buffer[10] = 0x67;
             buffer[11] = 0x04;
-            buffer[12] = ((DATE *)(data->data))->month;
-            buffer[13] = ((DATE *)(data->data))->day;
-            buffer[14] = ((DATE *)(data->data))->year >> 8;
-            buffer[15] = ((DATE *)(data->data))->year & 0xff;
+            buffer[12] = ((struct AlcatelDateStruct *)(data->data))->month;
+            buffer[13] = ((struct AlcatelDateStruct *)(data->data))->day;
+            buffer[14] = ((struct AlcatelDateStruct *)(data->data))->year >> 8;
+            buffer[15] = ((struct AlcatelDateStruct *)(data->data))->year & 0xff;
             buffer[16] = 0x00;
             break;
         case _time:
@@ -772,9 +772,9 @@ int sync_create_field(alc_type type, int field, FIELD *data) {
             buffer[9] = 0x06;
             buffer[10] = 0x68;
             buffer[11] = 0x03;
-            buffer[12] = ((TIME *)(data->data))->hour;
-            buffer[13] = ((TIME *)(data->data))->minute; 
-            buffer[14] = ((TIME *)(data->data))->second;
+            buffer[12] = ((struct AlcatelTimeStruct *)(data->data))->hour;
+            buffer[13] = ((struct AlcatelTimeStruct *)(data->data))->minute;
+            buffer[14] = ((struct AlcatelTimeStruct *)(data->data))->second;
             buffer[15] = 0x00;
             break;
         case _string:

@@ -31,27 +31,61 @@
 #define SMS_SENT    3
 #define SMS_ALL     4
 
-typedef struct {
+/** Structure for storing messages
+  */
+struct SMSData {
+    /** position
+      */
     int pos;
+    /** status
+      */
     int stat;
+    /** length of raw data
+      */
     int len;
-    char* raw;
-    char* sendr;
+    /** raw T-PDU data
+      */
+    char *raw;
+    /** sender/receiver phone
+      */
+    char *sendr;
+    /** date + time of sending
+      */
     time_t date;
-    char* ascii;
-    char* smsc;
-} SMS;
+    /** latin1 text
+      */
+    char *ascii;
+    /** SMSC (Short Message Service Centre)
+      */
+    char *smsc;
+};
 
-
+/** Deletes message
+  */
 int delete_sms(int which);
 
-SMS *get_sms(int which);
-SMS *get_smss(int state = SMS_ALL);
+/** Reads mssage
+  */
+struct SMSData *get_sms(int which);
 
+/** Reads mssages
+  */
+struct SMSData *get_smss(int state = SMS_ALL);
+
+/** Sends message
+  */
 int send_sms(char *pdu);
+
+/** Store message
+  */
 int put_sms(char *pdu, int state);
 
+/** Returns SMSC (Short Messages Service Centre)
+  */
 char *get_smsc(void);
+
+/** Sets SMSC (Short Messages Service Centre)
+  */
 void set_smsc(char *smsc);
 
 #endif

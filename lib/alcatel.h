@@ -57,7 +57,7 @@
  */
 
 /* packet types: */
-/* used for starting binary connection (must be preceeded by 
+/* used for starting binary connection (must be preceeded by
  * AT+CPROT=16,"V1.0",16 and phone should respons to it by CONNECT) */
 #define ALC_CONNECT         0x0A 
 /* received when connect suceeded */
@@ -106,9 +106,9 @@
 #define ALC_CALENDAR_ALARM          4
 #define ALC_CALENDAR_REPEATING      9
 
-/* types of return values */
-typedef enum {
-/*  name           stored as */    
+/** types of return values
+ */
+enum AlcatelFieldType {
     _date,      /* DATE      */
     _time,      /* TIME      */
     _string,    /* char *    */
@@ -117,83 +117,114 @@ typedef enum {
     _bool,      /* int       */
     _int,       /* int       */
     _byte       /* int       */
-} TYPE;
+};
 
-typedef struct {
-    TYPE type;
+/** structure to store data from alcatel
+ */
+struct AlcatelFieldStruct {
+    /** type of data
+      */
+    AlcatelFieldType type;
+    /** pointer to data of type determined by type field
+      */
     void *data;
-} FIELD;
+};
 
-typedef struct {
+/** structure to store date
+ */
+struct AlcatelDateStruct {
     int day;
     int month;
     int year;
-} DATE;
+};
 
-typedef struct {
+/** structure to store time
+ */
+struct AlcatelTimeStruct {
     int hour;
     int minute;
     int second;
-} TIME;
+};
 
-/* initialises binary mode */
+/** initialises binary mode
+ */
 void alcatel_init();
 
-/* ends binary mode */
+/** ends binary mode
+ */
 void alcatel_done();
 
-/* send packet of type type, if type = ACL_DATA then data are read from data
+/** send packet of type type, if type = ACL_DATA then data are read from data
  * (length len, \0 is not treated as end) */
 void alcatel_send_packet(alc_type type, alc_type *data, alc_type len);
 
-/* attach to mobile, this must be used before any action */
+/** attach to mobile, this must be used before any action
+ */
 void alcatel_attach();
 
-/* detach from mobile, must be used before done */
+/** detach from mobile, must be used before done
+ */
 void alcatel_detach();
 
-/* start synchronisation session */
+/** start synchronisation session
+ */
 void sync_start_session();
 
+/** close synchronisation session
+ */
 void sync_close_session(alc_type type);
 
-/* select synchronisation type 
- * returns error code from phone (see above) */
+/** select synchronisation type
+ * returns error code from phone (see above)
+  */
 int sync_select_type(alc_type type);
 
-/* Start reading of selected type, do NOT use here ALC_SYNC_TYPE_* use the
+/** Start reading of selected type, do NOT use here ALC_SYNC_TYPE_* use the
  * ALC_SYNC_name instead. */
 void sync_begin_read(alc_type type);
 
-/* Returns array with ids of items of currently selected type. First item in
+/** Returns array with ids of items of currently selected type. First item in
  * array contains length of it. */
 int *sync_get_ids(alc_type type);
 
-/* Returns array with field ids for selected item of currently selected type.
+/** Returns array with field ids for selected item of currently selected type.
  * First item in array contains length of it. */
 int *sync_get_fields(alc_type type, int item);
 
-/* Returns array with data from selected field. First item in array contains
+/** Returns array with data from selected field. First item in array contains
  * length of it. Following containg raw data as received from mobile, use 
  * decode_field_value to get them more readable. */
 alc_type *sync_get_field_value(alc_type type, int item, int field);
 
-/* Decodes raw field value to FIELD structure. */
-FIELD *decode_field_value(alc_type *buffer);
+/** Decodes raw field value to FIELD structure.
+ */
+struct AlcatelFieldStruct *decode_field_value(alc_type *buffer);
 
-/* Returns array with ids of categories. First item in array contains length
+/** Returns array with ids of categories. First item in array contains length
  * of it. */
 int *sync_get_obj_list(alc_type type, alc_type list);
 
-/* Returns name for selected category. */
+/** Returns name for selected category.
+ */
 char *sync_get_obj_list_item(alc_type type, alc_type list, int item);
 
+/** Creates category.
+ */
 int sync_create_obj_list_item(alc_type type, alc_type list, char *item);
+
+/** Commits changes.
+ */
 void sync_commit(alc_type type);
+
+/** Delete all categories.
+ */
 void sync_del_obj_list_items(alc_type type, alc_type list);
 
-/* select synchronisation type 
- * returns error code from phone (see above) */
-int sync_update_field(alc_type type, int item, int field, FIELD *data);
-int sync_create_field(alc_type type, int field, FIELD *data);
+/** Updates field
+ */
+int sync_update_field(alc_type type, int item, int field, struct AlcatelFieldStruct *data);
+
+/** Creates field, after creating all fields for new record call @ref sync_commit
+ */
+int sync_create_field(alc_type type, int field, struct AlcatelFieldStruct *data);
 #endif

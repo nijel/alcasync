@@ -29,8 +29,12 @@
 #undef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
+/** Returns true id char* is number
+ */
 int is_number(const char* const text);
 
+/** Terminates program in p is null, used for checking after malloc
+ */
 void chk(const void *p);
 
 #endif

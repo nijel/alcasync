@@ -24,14 +24,45 @@
 #ifndef MODEM_INFO_H
 #define MODEM_INFO_H
 
+/** Reads battery information
+ */
 int get_battery(int *mode, int *change);
+
+/** Reads signal information
+ */
 int get_signal(int *rssi, int *ber);
+
+/** Reads manufacturer
+ */
 void get_manufacturer(char *manuf,int len);
-void get_string(char *cmd, char *data, int len);
+
+/** Reads serial number
+ */
 void get_sn(char *sn,int len);
+
+/** Reads revision
+ */
 void get_revision(char *rev,int len);
+
+/** Reads model information
+ */
 void get_model(char *model,int len);
 
+/** Reads string value using AT command.
+ * Used by
+ * @ref get_manufacturer,
+ * @ref get_sn,
+ * @ref get_revision,
+ * @ref get_model
+ */
+void get_string(char *cmd, char *data, int len);
+
+/** Reads IMSI (Internation Mobile Subscriber Identity)
+ */
+void get_imsi(char *manuf,int len);
+
+/** Descriptions to signal strength values returned bu @ref get_signal
+ */
 extern char mobil_signal_info[][10];
 
 #endif

@@ -48,11 +48,11 @@ int delete_sms(int which) {
 	return 1;
 }
 
-SMS *get_smss(int state = SMS_ALL) {
+struct SMSData *get_smss(int state = SMS_ALL) {
     char buffer[10000];
     char *data;
     int count = 0;
-    SMS *mesg;
+    struct SMSData *mesg;
     char raw[1024];
     char sendr[1024];
     char ascii[1024];
@@ -73,7 +73,7 @@ SMS *get_smss(int state = SMS_ALL) {
     message(MSG_INFO,"Read %d messages", count);
     
     /* allocate array for storing messages */
-    mesg = (SMS *)malloc((count + 1) * sizeof(SMS));
+    mesg = (struct SMSData *)malloc((count + 1) * sizeof(struct SMSData));
     chk(mesg);
     mesg[count].pos = -1; /* end symbol */
 
@@ -88,7 +88,7 @@ SMS *get_smss(int state = SMS_ALL) {
         chk(mesg[count].raw = strdup(raw));
         chk(mesg[count].sendr = strdup(sendr));
         chk(mesg[count].ascii = strdup(ascii));
-        message(MSG_DEBUG2, "Message %d (raw): %s \"%s\"", mesg[count].pos, mesg[count].sendr, mesg[count].ascii);
+        message(MSG_DEBUG2, "Message %d: %s \"%s\"", mesg[count].pos, mesg[count].sendr, mesg[count].ascii);
         chk(mesg[count].smsc = strdup(smsc));
         count++;
     }
@@ -96,10 +96,10 @@ SMS *get_smss(int state = SMS_ALL) {
     return mesg;
 }
 
-SMS *get_sms(int which) {
+struct SMSData *get_sms(int which) {
     char buffer[10000];
     char *data;
-    SMS *mesg;
+    struct SMSData *mesg;
     char raw[1024];
     char sendr[1024];
     char ascii[1024];
@@ -110,7 +110,7 @@ SMS *get_sms(int which) {
     if (modem_cmd(raw,buffer,sizeof(buffer)-1,50,0)==0) return NULL;
 
     /* allocate array for storing message */
-    mesg = (SMS *)malloc(sizeof(SMS));
+    mesg = (struct SMSData *)malloc(sizeof(struct SMSData));
     chk(mesg);
 
 

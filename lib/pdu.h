@@ -55,15 +55,28 @@ number types:
 #define PDU_MAXNUMLEN 20 /* maximum number of digits in GSM number */
 #define PDU_MAXBODYLEN 160 /* maximum length of characters in SMS body */
 
+/** Converts string to PDU data
+ */
 int str2pdu(char *str, char *pdu, int charset_conv);
 
+/** Converts PDU data to string
+ */
 int pdu2str(char *pdu, char *str, int charset_conv);
 
+/** Splits T-PDU data to message parts
+ */
 int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc);
 
+/** Makes T-PDU data
+ */
 void make_pdu(char* number, char* message, int deliv_report, int pdu_class, char* pdu);
+
+/** Makes T-PDU data with included SMSC number
+ */
 void make_pdu_smsc(char *smsc, char* number, char* message, int deliv_report, int pdu_class, char* pdu);
 
-void swapchars(char* string); /* Swaps every second character */
+/** Swaps every second character
+ */
+void swapchars(char* string);
     
 #endif
