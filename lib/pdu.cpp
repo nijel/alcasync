@@ -162,7 +162,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
             smsc[Length]=0;
         switch (type >> 4) {
             case NUM_TYPE_INT:
-                memmove(sendr + 1, sendr, strlen(sendr));
+                memmove(smsc + 1, smsc, strlen(smsc) + 1);
                 smsc[0] = '+';
                 break;
             case NUM_TYPE_CHR:
@@ -185,7 +185,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         sendr[Length]=0;
         switch (type >> 4) {
             case NUM_TYPE_INT:
-                memmove(sendr + 1, sendr, strlen(sendr));
+                memmove(sendr + 1, sendr, strlen(sendr) + 1);
                 smsc[0] = '+';
                 break;
             case NUM_TYPE_CHR:
@@ -208,7 +208,7 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
         sendr[Length]=0;
         switch (type >> 4) {
             case NUM_TYPE_INT:
-                memmove(sendr + 1, sendr, strlen(sendr));
+                memmove(sendr + 1, sendr, strlen(sendr) + 1);
                 smsc[0] = '+';
                 break;
             case NUM_TYPE_CHR:
