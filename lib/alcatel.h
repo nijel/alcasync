@@ -146,9 +146,11 @@ struct AlcatelTimeStruct {
  *          protocol that is used, try to find out which packet was send
  *          before and what action failed and they either try to find error
  *          or try to contact author to help you with it
- *  0x13 = closing of nonexistent session
+ *  0x13 = closing of nonexistent session ???
  *  0x0C = bad dbid/item id
  *  0x2A = nonexistant field/item id
+ *  0x2F = closing session when no open
+ *  0x11 = bad list id 
  *
  *  other values are also possible...
  */
@@ -180,11 +182,13 @@ alc_type *alcatel_recv_packet(bool ack);
  */
 bool alcatel_attach(void);
 
-/** detach from mobile, must be used before done
+/** Detach from mobile, must be used before done.
+ * This causes message about synchronistaion disppears on phone display.
  */
 bool alcatel_detach(void);
 
-/** start synchronisation session
+/** Start synchronisation session.
+ * This causes message about synchronistaion appears on phone display.
  */
 bool alcatel_start_session(void);
 

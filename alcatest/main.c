@@ -507,9 +507,9 @@ bool do_command(char *command) {
                                 scanf("%s", inp);
                                 len = strlen(inp);
                             } while (len < par->min_length || len > par->max_length);
-                            params[i] = strdup(inp);
-                            for( int j=0; params[i][j]; j++) 
-                                params[i][j] = ascii2gsm(params[i][j]);
+                            params[i] = (char *)malloc(2*strlen(inp) +1);
+                            for( int j=0; inp[j]; j++) 
+                                sprintf(&(params[i][2*j]), "%02x", ascii2gsm(inp[j]));
                             break;
                         case Thex:
                             do {
@@ -567,7 +567,7 @@ bool do_command(char *command) {
                             params[i] = strdup(inp);
                             break;
                     }
-
+//debug                    printf("read param[%d]=\"%s\"\n", i, params[i]);
                     i++;
                 }
             }

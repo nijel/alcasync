@@ -424,7 +424,7 @@ bool alcatel_select_type(alc_type type) {
     free(answer);
 
     if (result)
-        free(alcatel_recv_packet(1));
+        free(alcatel_recv_packet(1)); //[9] = session ID
     else
         alcatel_errno = answer[8];
 
