@@ -435,13 +435,13 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     
         message(MSG_INFO, "Received %d categories:", list[0]);
 
-    for (i = 1; i <= list[0]; i++) {
-        result = sync_get_obj_list_item(type, cat, list[i]);
-        printf ("%02d: %s\n", list[i],  result);
-        free(result);
-    }
-    
-    free(list);
+        for (i = 1; i <= list[0]; i++) {
+            result = sync_get_obj_list_item(type, cat, list[i]);
+            printf ("%02d: %s\n", list[i],  result);
+            free(result);
+        }
+        
+        free(list);
     } else {
         message(MSG_ERROR, "Can not open sync session!");
     }
@@ -475,7 +475,7 @@ void list_alc_items(alc_type sync, alc_type type) {
     int *ids, *items;
     AlcatelFieldStruct *field;
 
-    int count;
+    int count=100; /* default to high cat number... */
     
     switch (sync) {
         case ALC_SYNC_CALENDAR:
@@ -496,17 +496,32 @@ void list_alc_items(alc_type sync, alc_type type) {
         sync_begin_read(sync);
 
         ids = sync_get_ids(type);
+        if (ids == NULL) {
+            sync_close_session(type);
+            alcatel_detach();
+            return;
+        }
 
         message(MSG_INFO, "Received %d ids", ids[0]);
         
         for (i = 1; i <= ids[0]; i++) {
             message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
             items = sync_get_fields(type, ids[i]);
+            if (items == NULL) {
+                sync_close_session(type);
+                alcatel_detach();
+                return;
+            }
             message(MSG_INFO, "Receiving data for item %d (%d fields)", ids[i], items[0]);
             printf ("Item %d (fields: %d):\n", ids[i], items[0]);
             for (j = 1; j <= items[0]; j++) {
                 message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
                 result = sync_get_field_value(type, ids[i], items[j]);
+                if (result == NULL) {
+                    sync_close_session(type);
+                    alcatel_detach();
+                    return;
+                }
                 field = decode_field_value(result);
                 if (items[j]  < count) {
                     switch (sync) {
@@ -518,6 +533,9 @@ void list_alc_items(alc_type sync, alc_type type) {
                             break;
                         case ALC_SYNC_CONTACTS:
                             printf ("  %s:", alc_contacts_field_names[items[j]]);
+                            break;
+                        default:
+                            printf(" UNKNOWN(%02d): ",items[j]);
                             break;
                     }
                 } else {
@@ -570,8 +588,8 @@ void list_alc_items(alc_type sync, alc_type type) {
     alcatel_detach();
 }
 
-void print_message(SMSData* sms) {
-    if (((*sms).stat == SMS_SENT) || ((*sms).stat == SMS_UNSENT)) {
+void print_message(MessageData* sms) {
+    if (((*sms).stat == MESSAGE_SENT) || ((*sms).stat == MESSAGE_UNSENT)) {
         printf("To: %s\nSMSC: %s\nStatus: %d\nPosition: %d\n\n%s\n",
             (*sms).sendr,
             (*sms).smsc,
@@ -590,9 +608,9 @@ void print_message(SMSData* sms) {
 }
 
 void list_messages() {
-    SMSData *sms;
+    MessageData *sms;
     int i;
-    sms = get_smss(SMS_ALL);
+    sms = get_smss(MESSAGE_ALL);
     i = 0;
     while (sms[i].pos != -1) {
         print_message(sms+i);
@@ -603,7 +621,7 @@ void list_messages() {
 }
 
 void read_messages() {
-    SMSData *sms;
+    MessageData *sms;
     int i;
     for (i = 0; i < action_read_pos; i++){
         sms = get_sms(action_read[i]);
@@ -644,13 +662,23 @@ void write_message() {
     int i;
 
     make_pdu(extra_params[0], extra_params[1], 0, PDU_CLASS_SIM, pdu);
-    i = put_sms(pdu, (action_write_type == 0) ? SMS_SENT : SMS_UNSENT);
+    i = put_sms(pdu, (action_write_type == 0) ? MESSAGE_SENT : MESSAGE_UNSENT);
     if (i != -1) printf ("Message written at position %d\n", i);
     else message(MSG_ERROR, "Message not written!");
     shorten_extra_params(2);
 }
 
 void test() {
+    int i,j;
+        
+    for (i = 0; i < 0xf; i++) {
+        printf("TLD loop: 0x%X\n", i);
+        for (j = 0; j < 0x1f; j++) {
+            list_alc_items((alc_type)i, (alc_type)j);
+        }   
+    }
+
+/*    
     AlcatelFieldStruct field;
     char test[] = "TESTovaci ToDo";
 
@@ -675,7 +703,7 @@ void test() {
     }
     
     sync_close_session(ALC_SYNC_TYPE_TODO);
-    alcatel_detach();
+    alcatel_detach();*/
 }
 
 int main(int argc, char *argv[]) {

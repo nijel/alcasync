@@ -25,15 +25,15 @@
 #define SMS_H
 #include <time.h>
 
-#define SMS_UNREAD  0
-#define SMS_READ    1
-#define SMS_UNSENT  2
-#define SMS_SENT    3
-#define SMS_ALL     4
+#define MESSAGE_UNREAD  0
+#define MESSAGE_READ    1
+#define MESSAGE_UNSENT  2
+#define MESSAGE_SENT    3
+#define MESSAGE_ALL     4
 
 /** Structure for storing messages
   */
-struct SMSData {
+struct MessageData {
     /** position
       */
     int pos;
@@ -66,11 +66,11 @@ int delete_sms(int which);
 
 /** Reads mssage
   */
-struct SMSData *get_sms(int which);
+MessageData *get_sms(int which);
 
 /** Reads mssages
   */
-struct SMSData *get_smss(int state = SMS_ALL);
+MessageData *get_smss(int state = MESSAGE_ALL);
 
 /** Sends message
   */

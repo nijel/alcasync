@@ -48,36 +48,36 @@ int delete_sms(int which) {
 	return 1;
 }
 
-struct SMSData *get_smss(int state = SMS_ALL) {
+MessageData *get_smss(int state = MESSAGE_ALL) {
     char buffer[10000];
     char *data;
     int count = 0;
-    struct SMSData *mesg;
+    MessageData *mesg;
     char raw[1024];
     char sendr[1024];
     char ascii[1024];
     char smsc[1024];
-    
+
     message(MSG_INFO,"Reading all messages");
-    
+
     sprintf(raw, "AT+CMGL=%d\r\n", state);
     modem_cmd(raw ,buffer,sizeof(buffer)-1,100,0);
-    
+
     data = buffer;
     /* how many sms messages are listed? */
     while( (data = strstr(data,"+CMGL:")) != NULL) {
         count++;
-        data++; 
+        data++;
     }
 
     message(MSG_INFO,"Read %d messages", count);
-    
+
     /* allocate array for storing messages */
-    mesg = (struct SMSData *)malloc((count + 1) * sizeof(struct SMSData));
+    mesg = (MessageData *)malloc((count + 1) * sizeof(struct MessageData));
     chk(mesg);
     mesg[count].pos = -1; /* end symbol */
 
-    /* fill array */    
+    /* fill array */
     data = buffer;
     count = 0;
     while( (data = strstr(data,"+CMGL:")) != NULL) {
@@ -96,10 +96,10 @@ struct SMSData *get_smss(int state = SMS_ALL) {
     return mesg;
 }
 
-struct SMSData *get_sms(int which) {
+MessageData *get_sms(int which) {
     char buffer[10000];
     char *data;
-    struct SMSData *mesg;
+    MessageData *mesg;
     char raw[1024];
     char sendr[1024];
     char ascii[1024];
@@ -110,7 +110,7 @@ struct SMSData *get_sms(int which) {
     if (modem_cmd(raw,buffer,sizeof(buffer)-1,50,0)==0) return NULL;
 
     /* allocate array for storing message */
-    mesg = (struct SMSData *)malloc(sizeof(struct SMSData));
+    mesg = (MessageData *)malloc(sizeof(struct MessageData));
     chk(mesg);
 
 
