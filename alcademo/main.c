@@ -1,5 +1,5 @@
 /*****************************************************************************
- * alctest/main.c - testing program for alcatel communication library        *
+ * alcademo/main.c - testing program for alcatel communication library       *
  *                                                                           *
  * Copyright (c) 2002 Michal Cihar <cihar at email dot cz>                   *
  *                                                                           *
@@ -101,7 +101,7 @@ extern char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20],
             alc_todo_field_names[ALC_TODO_FIELDS][20];
 
 void help() {
-    printf("This is test program for " ALCASYNC_NAME " version " ALCASYNC_VERSION "\nCopyright (c) " ALCASYNC_COPYRIGHT "\n");
+    printf("This is demo program for " ALCASYNC_NAME " version " ALCASYNC_VERSION "\nCopyright (c) " ALCASYNC_COPYRIGHT "\n");
     printf("Usage:  %s [options] [--] [string parameters if required]\n", basename(progname));
     printf("Options:\n");
     printf("    -d<dev>/--device=<dev> ... modem device [%s]\n",default_device);
@@ -173,7 +173,7 @@ void help() {
 }
 
 void version() {
-    printf("This is test program for " ALCASYNC_NAME " version " ALCASYNC_VERSION "\nCopyright (c) " ALCASYNC_COPYRIGHT "\n");
+    printf("This is demo program for " ALCASYNC_NAME " version " ALCASYNC_VERSION "\nCopyright (c) " ALCASYNC_COPYRIGHT "\n");
     printf("This program is free software; you can redistribute it and/or modify\n");
     printf("it under the terms of the GNU General Public License as published by\n");
     printf("the Free Software Foundation; either version 2 of the License, or\n");
