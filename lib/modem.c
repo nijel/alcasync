@@ -193,7 +193,7 @@ void modem_init() {
 	modem_initialised = 1;
 
 // alcatel also supports USC2 but it is used only for contacts on sim card and
-// return values o some commands (at+csca)
+// return values of some commands (at+csca)
     modem_cmd("at+CSCS=\"GSM\"\r\n", answer, sizeof(answer), 50, NULL);
 
 // why use this??    
@@ -257,10 +257,9 @@ void modem_close() {
     /* close modem and remove lockfile */
     if (modem > 0) {
 		if (modem_initialised) {
-	        message(MSG_INFO,"Reseting modem");
-    	    modem_cmd("ATZ\r\n",answer,sizeof(answer),100,NULL);
-		}
-
+            message(MSG_INFO,"Reseting modem");
+            modem_cmd("ATZ\r\n",answer,sizeof(answer),100,NULL);
+        }
 		tcsetattr(modem,TCSANOW,&oldtio);
 
         close(modem);
