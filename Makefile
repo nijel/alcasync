@@ -1,5 +1,8 @@
 # Makefile
 
+VERSION=$(shell grep ALCASYNC_VERSION lib/version.h | sed 's/.*"\([0-9.]*\)[^0-9"]*".*/\1/')
+ROOTDIR=$(shell pwd)
+
 all: compile
 
 install: compile
@@ -14,6 +17,7 @@ clean:
 	cd settty && make clean
 	cd alcademo && make clean
 	cd alcatest && make clean
+	rm -f tags
 
 compile:
 	cd lib && make
@@ -23,3 +27,12 @@ compile:
     
 tags: $(shell find . -name '*.[ch]' -o -name '*.cpp')
 	ctags $(shell find . -name '*.[ch]' -o -name '*.cpp')
+
+
+dist: clean
+	rm -rf /tmp/alcasync-${VERSION}
+	mkdir /tmp/alcasync-${VERSION}
+	cp -a . /tmp/alcasync-${VERSION}
+	find /tmp/alcasync-${VERSION} \( -name CVS -o -name .\*.swp -o -name alcatest.log \) -print0 \
+		| xargs -0 rm -rf
+	tar cfz ${ROOTDIR}/../alcasync-${VERSION}.tar.gz -C /tmp alcasync-${VERSION}

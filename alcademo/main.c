@@ -684,6 +684,7 @@ void write_message() {
     shorten_extra_params(2);
 }
 
+/* This function is my playground, you are NOT advised to use this */
 void test() {
 //    int i,j;
 /*        

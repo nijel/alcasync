@@ -24,7 +24,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define ALCASYNC_VERSION     "0.3 BETA"
+#define ALCASYNC_VERSION     "0.3.1 BETA"
 #define ALCASYNC_NAME        "AlcaSync"
 #define ALCASYNC_COPYRIGHT   "2002 Michal Cihar"
 
