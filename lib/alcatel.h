@@ -76,7 +76,7 @@
 /* size of arrays with names */
 #define ALC_CONTACTS_FIELDS         25
 #define ALC_CALENDAR_FIELDS         22
-#define ALC_TODO_FIELDS             9
+#define ALC_TODO_FIELDS             10
 
 /* max count of categories (probably is smaller) */
 #define ALC_MAX_CATEGORIES          255 /* TODO: this should be examined more exactly */
@@ -249,4 +249,13 @@ bool alcatel_update_field(alc_type type, int item, int field, AlcatelFieldStruct
 /** Creates field, after creating all fields for new record call @ref sync_commit
  */
 bool alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data);
+
+/** Deletes item
+ */
+bool alcatel_delete_item(alc_type type, int item);
+
+/** Deletes field
+ */
+bool alcatel_delete_field(alc_type type, int item, int field);
+
 #endif

@@ -90,14 +90,14 @@ char alc_calendar_field_names[ALC_CALENDAR_FIELDS][20] = {
     "Private",
     "EventType",
     "ContactID",
-    "KNOWN UNKNOWN (9)",     /* I haven't seen this yet */
+    "PhoneNumber",          /* Accesible by IntelliSync, but not in mobile */
     "DayOfWeek",
     "Day",
     "WeekOfMonth",
     "Month",
-    "KNOWN UNKNOWN (14)",    /* I haven't seen this yet */
-    "KNOWN UNKNOWN (15)",    /* I haven't seen this yet */
-    "KNOWN UNKNOWN (16)",    /* I haven't seen this yet */
+    "UNKNOWN (14)",         /* I haven't seen this yet */
+    "UNKNOWN (15)",         /* I haven't seen this yet */
+    "UNKNOWN (16)",         /* I haven't seen this yet */
     "Frequency",
     "StartDate",
     "StopDate",
@@ -116,7 +116,10 @@ char alc_todo_field_names[ALC_TODO_FIELDS][20] = {
     "Private",
     "Category",
     "Priority",
-    "ContactID"
+    "ContactID",
+    "PhoneNumber"           /* Accesible by IntelliSync, but not in mobile */
+    /* DATE, probably also Alarm */
+    /* TIME, probably also Alarm */
 };
 
 alc_type in_counter = 0;
@@ -521,7 +524,7 @@ alc_type *alcatel_get_field_value(alc_type type, int item, int field) {
     alc_type *result;
     int len;
 
-    message(MSG_DETAIL, "Reading item value (%d.%02d)", item, field);
+    message(MSG_DETAIL, "Reading item value (%08x.%02x)", item, field);
     alcatel_send_packet(ALC_DATA, buffer, 10);
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
@@ -763,13 +766,14 @@ int alcatel_commit(alc_type type) {
         data = alcatel_recv_packet(1);
         result = data[12] + (data[11] << 8) + (data[10] << 16) + (data[9] << 24);
 //      7E 02 15 00 09 00 07 68 20 00 00 00 37 00 18
+//      7E 02 0A 00 09 00 07 68 20 00 00 00 58 00 68
 //                                 ^^^^^^^^^^^ should be returned....
         free(data);
     } else {
         alcatel_errno = ALC_ERR_DATA;
         result = -1;
+        free(data);
     }
-    free(data);
     return result;
 }
 
@@ -780,126 +784,90 @@ bool alcatel_update_field(alc_type type, int item, int field, AlcatelFieldStruct
     bool result;
     int j;
     
-    message(MSG_DETAIL, "Updating field (%d.%02d)", item, field);
+    if (data->data == NULL) {
+        return alcatel_delete_field(type, item, field);
+    }
+
+    message(MSG_DETAIL, "Updating field (%08x.%02x)", item, field);
 
     switch (data->type) {
         case _date:
             buffer[13] = 0x05;
             buffer[14] = 0x67;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x09;
-                buffer[15] = 0x04;
-                buffer[16] = ((AlcatelDateStruct *)(data->data))->month;
-                buffer[17] = ((AlcatelDateStruct *)(data->data))->day;
-                buffer[18] = ((AlcatelDateStruct *)(data->data))->year >> 8;
-                buffer[19] = ((AlcatelDateStruct *)(data->data))->year & 0xff;
-                buffer[20] = 0x00;
-            }
+            
+            buffer[10] = 0x09;
+            buffer[15] = 0x04;
+            buffer[16] = ((AlcatelDateStruct *)(data->data))->month;
+            buffer[17] = ((AlcatelDateStruct *)(data->data))->day;
+            buffer[18] = ((AlcatelDateStruct *)(data->data))->year >> 8;
+            buffer[19] = ((AlcatelDateStruct *)(data->data))->year & 0xff;
+            buffer[20] = 0x00;
             break;
         case _time:
             buffer[13] = 0x06;
             buffer[14] = 0x68;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x08;
-                buffer[15] = 0x03;
-                buffer[16] = ((AlcatelTimeStruct *)(data->data))->hour;
-                buffer[17] = ((AlcatelTimeStruct  *)(data->data))->minute;
-                buffer[18] = ((AlcatelTimeStruct  *)(data->data))->second;
-                buffer[19] = 0x00;
-            }
+
+            buffer[10] = 0x08;
+            buffer[15] = 0x03;
+            buffer[16] = ((AlcatelTimeStruct *)(data->data))->hour;
+            buffer[17] = ((AlcatelTimeStruct  *)(data->data))->minute;
+            buffer[18] = ((AlcatelTimeStruct  *)(data->data))->second;
+            buffer[19] = 0x00;
             break;
         case _string:
             buffer[13] = 0x08;
             buffer[14] = 0x3c;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars */
-                buffer[15] = strlen((char *)(buffer + 16));
-                for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
-                buffer[10] = 5 + buffer[15];
-                buffer[16 + buffer[15]] = 0x00;
-            }
+
+            strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[15] = strlen((char *)(buffer + 16));
+            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
+            buffer[10] = 5 + buffer[15];
+            buffer[16 + buffer[15]] = 0x00;
             break;
         case _phone:
             buffer[13] = 0x07;
             buffer[14] = 0x3c;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
-                buffer[15] = strlen((char *)(buffer + 16));
-                for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
-                buffer[10] = 5 + buffer[15];
-                buffer[16 + buffer[15]] = 0x00;
-            }
+
+            strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[15] = strlen((char *)(buffer + 16));
+            for (j=0; j<=buffer[15]; j++) buffer[16 + j] = ascii2gsm(buffer[16 + j]);
+            buffer[10] = 5 + buffer[15];
+            buffer[16 + buffer[15]] = 0x00;
             break;
         case _enum:
             buffer[13] = 0x04;
             buffer[14] = 0x38;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x05;
-                buffer[15] = *(int *)(data->data) & 0xff;
-                buffer[16] = 0x00;
-            }
+
+            buffer[10] = 0x05;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
             break;
         case _bool:
             buffer[13] = 0x03;
             buffer[14] = 0x3b;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x05;
-                buffer[15] = *(int *)(data->data) & 0xff;
-                buffer[16] = 0x00;
-            }
+
+            buffer[10] = 0x05;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
             break;
         case _int:
             buffer[13] = 0x02;
             buffer[14] = 0x3a;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x08;
-                buffer[15] = *(int *)(data->data) >> 24;
-                buffer[16] = (*(int *)(data->data) >> 16) & 0xff;
-                buffer[17] = (*(int *)(data->data) >> 8) & 0xff;
-                buffer[18] = *(int *)(data->data) & 0xff;
-                buffer[19] = 0x00;
-            }
+
+            buffer[10] = 0x08;
+            buffer[15] = *(int *)(data->data) >> 24;
+            buffer[16] = (*(int *)(data->data) >> 16) & 0xff;
+            buffer[17] = (*(int *)(data->data) >> 8) & 0xff;
+            buffer[18] = *(int *)(data->data) & 0xff;
+            buffer[19] = 0x00;
             break;
         case _byte:
             buffer[13] = 0x00;
             buffer[14] = 0x38;
-            if (data->data == NULL) {
-                buffer[10] = 0x05;
-                buffer[15] = 0x00;
-                buffer[16] = 0x00;
-            } else {
-                buffer[10] = 0x05;
-                buffer[15] = *(int *)(data->data) & 0xff;
-                buffer[16] = 0x00;
-            }
+
+            buffer[10] = 0x05;
+            buffer[15] = *(int *)(data->data) & 0xff;
+            buffer[16] = 0x00;
             break;
     }
 
@@ -923,125 +891,90 @@ bool alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
     alc_type buffer[180] = {0x00, 0x04, type, 0x25, 0x01, 0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
     alc_type *answer;
     bool result;
+    
+    if (data->data == NULL) {
+        // no need to create empty field
+        return true;
+    }
 
-    message(MSG_DETAIL, "Creating field (.%02d)", field);
+    message(MSG_DETAIL, "Creating field (????.%02x)", field);
 
     switch (data->type) {
         case _date:
             buffer[9] = 0x05;
             buffer[10] = 0x67;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x09;
-                buffer[11] = 0x04;
-                buffer[12] = ((AlcatelDateStruct *)(data->data))->month;
-                buffer[13] = ((AlcatelDateStruct *)(data->data))->day;
-                buffer[14] = ((AlcatelDateStruct *)(data->data))->year >> 8;
-                buffer[15] = ((AlcatelDateStruct *)(data->data))->year & 0xff;
-                buffer[16] = 0x00;
-            }
+
+            buffer[6] = 0x09;
+            buffer[11] = 0x04;
+            buffer[12] = ((AlcatelDateStruct *)(data->data))->month;
+            buffer[13] = ((AlcatelDateStruct *)(data->data))->day;
+            buffer[14] = ((AlcatelDateStruct *)(data->data))->year >> 8;
+            buffer[15] = ((AlcatelDateStruct *)(data->data))->year & 0xff;
+            buffer[16] = 0x00;
             break;
         case _time:
             buffer[9] = 0x06;
             buffer[10] = 0x68;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x08;
-                buffer[11] = 0x03;
-                buffer[12] = ((AlcatelTimeStruct *)(data->data))->hour;
-                buffer[13] = ((AlcatelTimeStruct *)(data->data))->minute;
-                buffer[14] = ((AlcatelTimeStruct *)(data->data))->second;
-                buffer[15] = 0x00;
-            }
+
+            buffer[6] = 0x08;
+            buffer[11] = 0x03;
+            buffer[12] = ((AlcatelTimeStruct *)(data->data))->hour;
+            buffer[13] = ((AlcatelTimeStruct *)(data->data))->minute;
+            buffer[14] = ((AlcatelTimeStruct *)(data->data))->second;
+            buffer[15] = 0x00;
             break;
         case _string:
             buffer[9] = 0x08;
             buffer[10] = 0x3c;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars */
-                buffer[11] = strlen((char *)(buffer + 12));
-                buffer[6] = 5 + buffer[11];
-                buffer[12 + buffer[11]] = 0x00;
-            }
+
+            strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[11] = strlen((char *)(buffer + 12));
+            buffer[6] = 5 + buffer[11];
+            buffer[12 + buffer[11]] = 0x00;
             break;
         case _phone:
             buffer[9] = 0x07;
             buffer[10] = 0x3c;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
-                buffer[11] = strlen((char *)(buffer + 12));
-                buffer[6] = 5 + buffer[11];
-                buffer[12 + buffer[11]] = 0x00;
-            }
+
+            strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[11] = strlen((char *)(buffer + 12));
+            buffer[6] = 5 + buffer[11];
+            buffer[12 + buffer[11]] = 0x00;
             break;
         case _enum:
             buffer[9] = 0x04;
             buffer[10] = 0x38;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x05;
-                buffer[11] = *(int *)(data->data) & 0xff;
-                buffer[12] = 0x00;
-            }
+
+            buffer[6] = 0x05;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
             break;
         case _bool:
             buffer[9] = 0x03;
             buffer[10] = 0x3b;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x05;
-                buffer[11] = *(int *)(data->data) & 0xff;
-                buffer[12] = 0x00;
-            }
+
+            buffer[6] = 0x05;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
             break;
         case _int:
             buffer[9] = 0x02;
             buffer[10] = 0x3a;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x08;
-                buffer[11] = *(int *)(data->data) >> 24;
-                buffer[12] = (*(int *)(data->data) >> 16) & 0xff;
-                buffer[13] = (*(int *)(data->data) >> 8) & 0xff;
-                buffer[14] = *(int *)(data->data) & 0xff;
-                buffer[15] = 0x00;
-            }
+
+            buffer[6] = 0x08;
+            buffer[11] = *(int *)(data->data) >> 24;
+            buffer[12] = (*(int *)(data->data) >> 16) & 0xff;
+            buffer[13] = (*(int *)(data->data) >> 8) & 0xff;
+            buffer[14] = *(int *)(data->data) & 0xff;
+            buffer[15] = 0x00;
             break;
         case _byte:
             buffer[9] = 0x00;
             buffer[10] = 0x38;
-            if (data->data == NULL) {
-                buffer[6] = 0x05;
-                buffer[11] = 0x00;
-                buffer[12] = 0x00;
-            } else {
-                buffer[6] = 0x05;
-                buffer[11] = *(int *)(data->data) & 0xff;
-                buffer[12] = 0x00;
-            }
+
+            buffer[6] = 0x05;
+            buffer[11] = *(int *)(data->data) & 0xff;
+            buffer[12] = 0x00;
             break;
     }
 
@@ -1060,3 +993,129 @@ bool alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
 
     return result;
 }
+
+bool alcatel_delete_item(alc_type type, int item) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x27, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 0x42};
+    alc_type *answer;
+    bool result;
+
+    message(MSG_DETAIL, "Deleting item (%08x)", item);
+
+    alcatel_send_packet(ALC_DATA, buffer, 10); 
+    free(alcatel_recv_ack(ALC_ACK));
+    answer = alcatel_recv_packet(1);
+    if (answer == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+
+    if (!(result = (answer[8] == 0)))
+        alcatel_errno = answer[8];
+
+    free(answer);
+    free(alcatel_recv_packet(1));
+
+    return result;
+}
+
+bool alcatel_delete_field(alc_type type, int item, int field) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 0x65, 0x01, field & 0xff, 0x01};
+    alc_type *answer;
+    bool result;
+
+    message(MSG_DETAIL, "Deleting field (%08x.%02x)", item, field);
+
+    alcatel_send_packet(ALC_DATA, buffer, 13); 
+    free(alcatel_recv_ack(ALC_ACK));
+    answer = alcatel_recv_packet(1);
+    if (answer == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+
+    if (!(result = (answer[8] == 0)))
+        alcatel_errno = answer[8];
+
+    free(answer);
+
+    return result;
+}
+
+/* TODO:
+
+alc>write 00067c81
+Sending packet: 00067c81
+Receiving ack
+alc>read
+Received data:
+7E 0204 0009 0046 7C00 8112 3456 78C2
+                         ^^^^^^^^^^ > DBID
+
+alc>write 00067c80
+Sending packet: 00067c80
+Receiving ack
+alc>read
+Received data:
+7E 0205 0009 0046 7C00 80FF FFFF FFCA
+>> InteliSync:
+7E 0203 0009 0046 7C00 8000 0005 CE07 
+                              ^^^^^ > device ID????
+
+"timestapms":
+                              
+09/30 10:24:35.189  Clt : **** MInvoke-MAction SyncBeginSynchro(SectType = 2, bImport = 0, SyncMode = 1, SyncStamp = 1033377559)
+
+1033377559 = 0x3D981717 = Sep 30 10:19:19 CET 2002
+09/30 10:24:35.189  Clt : Packet #11 sent : 19 bytes :
+	7E 02 04 00 0D 00 04 7C 81 02 00 85 01 86 3D 98 ~      |      = 
+	17 17 29                                          )
+	
+09/30 10:24:35.219  Clt : **** Sending Ack to #100014, Ns 0x6, Nr 0x7
+09/30 10:24:35.219  Clt : Packet #12 sent : 4 bytes :
+	7E 06 07 7F                                     ~   
+	
+09/30 10:24:35.229  Clt : PLP_ReceivePacket() #100014 (Q size after read 0) : 11 bytes :
+	7E 02 06 00 05 00 44 7C 00 81 C6                ~     D|   
+	
+09/30 10:24:35.239  Clt : **** Sending Ack to #100015, Ns 0x7, Nr 0x8
+09/30 10:24:35.239  Clt : Packet #13 sent : 4 bytes :
+	7E 06 08 70                                     ~  p
+	
+09/30 10:24:35.249  Clt : PLP_ReceivePacket() #100015 (Q size after read 0) : 13 bytes :
+	7E 02 07 00 07 00 07 7C 80 00 85 01 03          ~      |     
+	
+09/30 10:24:35.249  Clt : **** MInvoke-MAction UDSSyncGetChangeList(SessionID = 1)
+09/30 10:24:35.249  Clt : Packet #14 sent : 11 bytes :
+	7E 02 05 00 05 00 04 68 2E 01 3F                ~      h. ?
+	
+09/30 10:24:35.289  Clt : **** Sending Ack to #100018, Ns 0x8, Nr 0x9
+09/30 10:24:35.299  Clt : Packet #15 sent : 4 bytes :
+	7E 06 09 71                                     ~  q
+	
+09/30 10:24:35.299  Clt : PLP_ReceivePacket() #100018 (Q size after read 0) : 11 bytes :
+	7E 02 08 00 05 00 44 68 00 2E 73                ~     Dh .s
+	
+09/30 10:24:35.309  Clt : **** Sending Ack to #100019, Ns 0x9, Nr 0xA
+09/30 10:24:35.309  Clt : Packet #16 sent : 4 bytes :
+	7E 06 0A 72                                     ~  r
+	
+09/30 10:24:35.319  Clt : PLP_ReceivePacket() #100019 (Q size after read 0) : 13 bytes :
+	7E 02 09 00 07 00 07 68 27 6A 00 00 50          ~      h'j  P
+	
+
+end of sync:
+[...]
+09/30 10:24:55.207  Clt : **** MInvoke-MAction SyncEndSynchro(SectType = 2, SyncStamp = 1033377862)
+09/30 10:24:55.207  Clt : Packet #46 sent : 15 bytes :
+	7E 02 10 00 09 00 04 7C 82 02 3D 98 18 46 66    ~      |  =  Ff
+	
+09/30 10:24:55.247  Clt : **** Sending Ack to #100055, Ns 0x1D, Nr 0x1E
+09/30 10:24:55.247  Clt : Packet #47 sent : 4 bytes :
+	7E 06 1E 66                                     ~  f
+	
+09/30 10:24:55.247  Clt : PLP_ReceivePacket() #100055 (Q size after read 0) : 11 bytes :
+	7E 02 1D 00 05 00 44 7C 00 82 DE                ~     D|   
+	
+09/30 10:24:55.247  Clt : ++++ MInvoke-MAction SyncEndSynchro(SectType = 2, SyncStamp = 1033377862) returned 0
+
+*/
