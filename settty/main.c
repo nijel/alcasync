@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #define baudrate B9600
 
