@@ -20,8 +20,16 @@
 
 #include <termios.h>
 
+#define ERR_MDM_PDU     1
+#define ERR_MDM_AT      2
+#define ERR_MDM_LOCK    3
+#define ERR_MDM_OPEN    4
+
+int modem_errno;
+
 int modem;
 int rate;
+
 int baudrate;
 char device[100];
 char lockname[100];
@@ -55,9 +63,9 @@ int modem_read_raw(char *buffer,int len);
 
 void modem_setup(); /* setup serial port */
 
-void modem_init();
+int modem_init();
 
-void modem_open(); // Open the serial port
+int modem_open(); // Open the serial port
 
 void modem_close();
 

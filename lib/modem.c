@@ -30,6 +30,7 @@
 
 #define SLEEP_FAIL      100000
 #define SLEEP_WAIT      100000
+#define SLEEP_INIT      100000
 
 int modem_initialised=0;
 
@@ -170,14 +171,21 @@ void modem_setup() {
     tcsetattr(modem,TCSANOW,&newtio);
 }
 
-void modem_init() {
+int modem_init() {
     char command[100];
     char answer[500];
 
     tcflush(modem, TCIOFLUSH);
 
     message(MSG_INFO,"Initializing modem");
-	modem_cmd("\r\nAT\033\032\r\n",answer,sizeof(answer),0,NULL);/* ESCAPE, CTRL-Z */
+
+    write(modem, "\r", 1);
+    usleep(SLEEP_INIT);
+
+    while (read(modem, answer, sizeof(command) - 1) > 0)
+        ;
+
+    modem_cmd("\r\nAT\033\032\r\n",answer,sizeof(answer),0,NULL);/* ESCAPE, CTRL-Z */
 	
     /* perform initialization (if we should do it) */
     if (initstring[0])
@@ -190,7 +198,8 @@ void modem_init() {
     /* check whether there is any modem */
     if (modem_cmd("AT\r\n",answer,sizeof(answer),50,0) == 0) {
         message(MSG_ERROR,"Modem is not reacting to AT command!");
-        exit(3);
+        modem_errno = ERR_MDM_AT;
+        return 0;
     }
 	modem_initialised = 1;
 
@@ -208,8 +217,10 @@ void modem_init() {
     modem_cmd("AT+CMGF=0\r\n",answer,sizeof(answer),100,0);
     if (strstr(answer,"ERROR")) {
         message(MSG_ERROR,"Modem did not accept PDU mode 0");
-        exit(4);
+        modem_errno = ERR_MDM_PDU;
+        return 0;
     }
+    return 1;
 }
 
 void modem_set_smsc(char *smsc) {
@@ -220,7 +231,7 @@ void modem_set_smsc(char *smsc) {
     modem_cmd(command,answer,sizeof(answer),100,0);
 }
 
-void modem_open() {
+int modem_open() {
     int pid;
     FILE *lock;
 
@@ -233,7 +244,8 @@ void modem_open() {
             if (!kill(pid,0)){
                 /* process is running */
                 message(MSG_ERROR,"Modem is locked by pid %d!",pid);
-                exit(1);
+                modem_errno = ERR_MDM_LOCK;
+                return 0;
             }
         }
         fclose(lock);
@@ -247,11 +259,13 @@ void modem_open() {
     modem = open(device, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
     if (modem <0) {
         perror(device);
-        exit(2);
+        modem_errno = ERR_MDM_OPEN;
+        return 0;
     }
 
     tcgetattr(modem,&oldtio);
 	oldtio.c_cflag=(oldtio.c_cflag&~(CBAUD|CBAUDEX))|B0|HUPCL;
+	return 1;
 }
 
 void modem_close() {
