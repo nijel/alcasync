@@ -101,7 +101,7 @@ extern char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20],
             alc_todo_field_names[ALC_TODO_FIELDS][20];
 
 void help() {
-    printf("This is " NAME " version " VERSION " Copyright (c) " COPYRIGHT "\n");
+    printf("This is test program for " ALCATOOL_NAME " version " ALCATOOL_VERSION "\nCopyright (c) " ALCATOOL_COPYRIGHT "\n");
     printf("Usage:  %s [options] [--] [string parameters if required]\n", basename(progname));
     printf("Options:\n");
     printf("    -d<dev>/--device=<dev> ... modem device [%s]\n",default_device);
@@ -130,9 +130,9 @@ void help() {
     printf("    --create-contacts-cat=<s> ... creates contacts category\n");
     printf("    --delete-todo-cats ... deletes ALL todo categories *\n");
     printf("    --delete-contacts-cats ... deletes ALL contacts categories *\n");
-    printf("       * = both delete ONLY caregories and contacts/todos remain unchanged, when");
-    printf("           you recreate again category with same number, it will work ok, this is");
-    printf("           currently only way how to chaneg category");
+    printf("       * = both delete ONLY caregories and contacts/todos remain unchanged, when\n");
+    printf("           you recreate again category with same number, it will work ok, this\n");
+    printf("           is currently only way how to change category\n");
     
     printf("SMS mode mode actions (in order of execution if appers more):\n");
     printf("    -x<n>/--delete=<n> ... delete message number <n>\n");
@@ -140,7 +140,7 @@ void help() {
     printf("    -w[<n>]/--write[=<n>] * ... write message as sent [default] or unsent <n>!=0\n");
     printf("    -S/--send * ... send message number <n>\n");
     printf("    -l/--list ... list all messages [default]\n");
-    printf("       * = send and write require 2 parameters: phone number and message text");
+    printf("       * = send and write require 2 parameters: phone number and message text\n");
 //    printf("    -\n");
     
     printf("Help and simmilar:\n");
@@ -172,7 +172,7 @@ void help() {
 }
 
 void version() {
-    printf("This is " NAME " version " VERSION " Copyright (c) " COPYRIGHT "\n\n");
+    printf("This is test program for " ALCATOOL_NAME " version " ALCATOOL_VERSION "\nCopyright (c) " ALCATOOL_COPYRIGHT "\n");
     printf("This program is free software; you can redistribute it and/or modify\n");
     printf("it under the terms of the GNU General Public License as published by\n");
     printf("the Free Software Foundation; either version 2 of the License, or\n");
@@ -688,7 +688,8 @@ int main(int argc, char *argv[]) {
     
     parse_params(argc,argv);
 
-    message(MSG_INFO,"This is " NAME " version " VERSION " Copyright (c) " COPYRIGHT);
+    message(MSG_INFO, "This is test program for " ALCATOOL_NAME " version " ALCATOOL_VERSION);
+    message(MSG_INFO, "Copyright (c) " ALCATOOL_COPYRIGHT);
 
     modem_open();
     modem_setup(); 
