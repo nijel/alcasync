@@ -133,7 +133,7 @@ void help() {
     printf("       * = both delete ONLY caregories and contacts/todos remain unchanged, when");
     printf("           you recreate again category with same number, it will work ok, this is");
     printf("           currently only way how to chaneg category");
-	
+    
     printf("SMS mode mode actions (in order of execution if appers more):\n");
     printf("    -x<n>/--delete=<n> ... delete message number <n>\n");
     printf("    -r<n>/--read=<n> ... read message number <n>\n");
@@ -738,7 +738,7 @@ int main(int argc, char *argv[]) {
         if (action_contacts) list_alc_items(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS);
         if (action_calendar) list_alc_items(ALC_SYNC_CALENDAR, ALC_SYNC_TYPE_CALENDAR);
     if (action_test) {
-		test();
+        test();
     }
         
         alcatel_done();
