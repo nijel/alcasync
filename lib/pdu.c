@@ -21,7 +21,7 @@ int str2pdu(char *str, char *pdu, int charset_conv) {
     int pdubitnr;
     char converted;
     strLength=strlen(str);
-    for (character=0;character<sizeof(numb);character++)
+    for (character=0;character<(int)sizeof(numb);character++)
         numb[character]=0;
     for (character=0;character<strLength;character++) {
         if (charset_conv)
@@ -228,7 +228,7 @@ char *make_pdu_number(char *number, int add) {
     /* Swap every second character */
     swapchars(tmp);
     
-    chk(result = malloc(strlen(tmp) + 3));
+    chk(result = (char *)malloc(strlen(tmp) + 3));
 
     sprintf(result, "%02X%02X%s", (add != 0)?((num_len/2)+1):num_len, num_type, tmp);
     

@@ -34,7 +34,7 @@
 
 int modem_initialised=0;
 
-void modem_start_raw() {
+void modem_start_raw(void) {
 //    struct termios newtio;
 	
     message(MSG_ERROR,"start raw ignored!");
@@ -51,7 +51,7 @@ void modem_start_raw() {
     tcsetattr(modem,TCSANOW,&newtio);*/
 }
 
-int modem_send_raw(char *buffer,int len) {
+int modem_send_raw(unsigned char *buffer,int len) {
     int i=0,fails=0;
     while (i<len){
 
@@ -72,7 +72,7 @@ int modem_send_raw(char *buffer,int len) {
 	return len;
 }
 
-int modem_read_raw(char *buffer,int len) {
+int modem_read_raw(unsigned char *buffer,int len) {
     return read(modem, buffer, len);
 }
 
@@ -114,8 +114,8 @@ int modem_cmd(char* command,char* answer,int max,int timeout,char* expect) {
     do {
         counter++;
         toread=max-count-1;
-        if (toread>sizeof(tmp)-1)
-            toread=sizeof(tmp)-1;
+        if (toread>(int)sizeof(tmp)-1)
+            toread=(int)sizeof(tmp)-1;
         readcount=read(modem,tmp,toread);
         if (tmp[0]=='\0' || readcount<0) readcount=0;
         tmp[readcount]=0;
@@ -136,7 +136,7 @@ int modem_cmd(char* command,char* answer,int max,int timeout,char* expect) {
     /* Read some more in case there is more to read */
     usleep(SLEEP_WAIT);
     toread=max-count-1;
-    if (toread>sizeof(tmp)-1)
+    if (toread>(int)sizeof(tmp)-1)
         toread=sizeof(tmp)-1;
     readcount=read(modem,tmp,toread);
     if (readcount<0)
@@ -149,7 +149,7 @@ int modem_cmd(char* command,char* answer,int max,int timeout,char* expect) {
     return count;
 }
 
-void modem_setup() {
+void modem_setup(void) {
     struct termios newtio;
 	
     bzero(&newtio, sizeof(newtio));
@@ -171,7 +171,7 @@ void modem_setup() {
     tcsetattr(modem,TCSANOW,&newtio);
 }
 
-int modem_init() {
+int modem_init(void) {
     char command[100];
     char answer[500];
 
@@ -231,7 +231,7 @@ void modem_set_smsc(char *smsc) {
     modem_cmd(command,answer,sizeof(answer),100,0);
 }
 
-int modem_open() {
+int modem_open(void) {
     int pid;
     FILE *lock;
 
@@ -268,7 +268,7 @@ int modem_open() {
 	return 1;
 }
 
-void modem_close() {
+void modem_close(void) {
     char answer[500];
     /* close modem and remove lockfile */
     if (modem > 0) {

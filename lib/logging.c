@@ -54,7 +54,7 @@ void message(int severity,char* format, ...)
     }
 }
 
-#define NELEM(x) (sizeof((x))/sizeof(*(x)))
+#define NELEM(x) ((int)(sizeof((x))/sizeof(*(x))))
 
 
 const char *reform(const char *s,int slot) {
@@ -65,15 +65,15 @@ const char *reform(const char *s,int slot) {
     char c,*d;
     struct formslot *fs;
 
-    assert(slot>=0 && slot<NELEM(arr));
+    assert((slot>=0) && (slot<NELEM(arr)));
     if (!s) return("<unset>");
     if (!(fs=&arr[slot])->s)
-        chk(fs->s=malloc(fs->l=LINE_MAX));
+        chk(fs->s=(char *)malloc(fs->l=LINE_MAX));
     d=fs->s;
     for (*d++='"';(c=*s);s++) {
         if (d>=fs->s+fs->l-10) {
             off_t o=d-fs->s;
-            chk(fs->s=realloc(fs->s,(fs->l=(fs->l?fs->l*2:LINE_MAX))));
+            chk(fs->s=(char *)realloc(fs->s,(fs->l=(fs->l?fs->l*2:LINE_MAX))));
             d=fs->s+o;
         }
         if (c!='\\' && c!='"' && isprint(c)) { *d++=c; continue; }
@@ -93,7 +93,7 @@ const char *reform(const char *s,int slot) {
     return(fs->s);
 }
 
-const char *hexdump(const char *s, int size,int slot) {
+const char *hexdump(const unsigned char *s, int size,int slot) {
     static struct formslot {
         char *s;
         size_t l;
@@ -105,13 +105,13 @@ const char *hexdump(const char *s, int size,int slot) {
     assert(slot>=0 && slot<NELEM(arr));
     if (!s) return("<unset>");
     if (!(fs=&arr[slot])->s)
-        chk(fs->s=malloc(fs->l=LINE_MAX));
+        chk(fs->s=(char *)malloc(fs->l=LINE_MAX));
     d=fs->s;
     for (*d++='"';i<size;i++,s++) {
         c=*s;
         if (d>=fs->s+fs->l-10) {
             off_t o=d-fs->s;
-            chk(fs->s=realloc(fs->s,(fs->l=(fs->l?fs->l*2:LINE_MAX))));
+            chk(fs->s=(char *)realloc(fs->s,(fs->l=(fs->l?fs->l*2:LINE_MAX))));
             d=fs->s+o;
         }
         d+=sprintf(d,"%02X ",(unsigned char)c);

@@ -205,7 +205,7 @@ alc_type *alcatel_recv_packet(int ack) {
     
     message(MSG_DEBUG,"Received packet %s", hexdump(recv_buffer, wanted_size, 1));
 
-    data = malloc(wanted_size);
+    data = (alc_type *)malloc(wanted_size);
     chk(data);
     memcpy(data, recv_buffer, wanted_size);
 
@@ -272,7 +272,7 @@ alc_type *alcatel_recv_ack(alc_type type){
         alcatel_recv_shorten(wanted_size);
         return alcatel_recv_ack(type);
     } else {
-        data = malloc(wanted_size);
+        data = (alc_type *)malloc(wanted_size);
         chk(data);
         memcpy(data, recv_buffer, wanted_size);
 
@@ -463,12 +463,12 @@ FIELD *decode_field_value(alc_type *buffer) {
     alc_type *s;
     int *i;
 
-    field = malloc(sizeof(FIELD));
+    field = (FIELD *)malloc(sizeof(FIELD));
     chk(field);
     
     if (buffer[1] == 0x05 && buffer[2] == 0x67) {
         /* date */
-        date = malloc(sizeof(DATE));
+        date = (DATE *)malloc(sizeof(DATE));
         chk(date);
         date->day = buffer[4];
         date->month = buffer[5];
@@ -478,7 +478,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = date;
     } else if (buffer[1] == 0x06 && buffer[2] == 0x68) {
         /* time */
-        time = malloc(sizeof(TIME));
+        time = (TIME *)malloc(sizeof(TIME));
         chk(time);
         time->hour = buffer[4];
         time->minute = buffer[5];
@@ -488,7 +488,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = time;
     } else if (buffer[1] == 0x08 && buffer[2] == 0x3C) {
         /* string */
-        s = malloc(buffer[3]+1);
+        s = (alc_type *)malloc(buffer[3]+1);
         chk(s);
         memcpy(s, buffer+4, buffer[3]);
         
@@ -496,7 +496,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = s;
     } else if (buffer[1] == 0x07 && buffer[2] == 0x3C) {
         /* phone */
-        s = malloc(buffer[3]+1);
+        s = (alc_type *)malloc(buffer[3]+1);
         chk(s);
         memcpy(s, buffer+4, buffer[3]);
         
@@ -504,7 +504,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = s;
     } else if (buffer[1] == 0x03 && buffer[2] == 0x3B) {
         /* boolean */
-        i = malloc(sizeof(int));
+        i = (int *)malloc(sizeof(int));
         chk(i);
         *i = buffer[3];
 
@@ -512,7 +512,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = i;
     } else if (buffer[1] == 0x02 && buffer[2] == 0x3A) {
         /* integer */
-        i = malloc(sizeof(int));
+        i = (int *)malloc(sizeof(int));
         chk(i);
         *i = buffer[6] + (buffer[5] << 8) + (buffer[4] << 16) + (buffer[3] << 24);
 
@@ -520,7 +520,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = i;
     } else if (buffer[1] == 0x04 && buffer[2] == 0x38) {
         /* enumeration */
-        i = malloc(sizeof(int));
+        i = (int *)malloc(sizeof(int));
         chk(i);
         *i = buffer[3];
 
@@ -528,7 +528,7 @@ FIELD *decode_field_value(alc_type *buffer) {
         field->data = i;
     } else if (buffer[1] == 0x00 && buffer[2] == 0x38) {
         /* byte */
-        i = malloc(sizeof(int));
+        i = (int *)malloc(sizeof(int));
         chk(i);
         *i = buffer[3];
 
@@ -571,7 +571,7 @@ int *sync_get_obj_list(alc_type type, alc_type list) {
 char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
     alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x0c, list | 0x90, 0x0A, 0x01, (item & 0xff) };
     alc_type *data;
-    alc_type *result;
+    char *result;
     int len;
 
     alcatel_send_packet(ALC_DATA, buffer, 8); 
@@ -581,7 +581,7 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
 
     len = data[14]; 
 
-    result = (alc_type *)malloc(len + 1);
+    result = (char *)malloc(len + 1);
     chk(result);
 
     memcpy(result,data + 15, len);
@@ -670,16 +670,16 @@ int sync_update_field(alc_type type, int item, int field, FIELD *data) {
         case _string:
             buffer[13] = 0x08;
             buffer[14] = 0x3c;
-            strncpy(buffer + 16, (char *)(data->data), 150); /* maximally 150 chars */
-            buffer[15] = strlen(buffer + 16);
+            strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[15] = strlen((char *)(buffer + 16));
             buffer[10] = 5 + buffer[15];
             buffer[16 + buffer[15]] = 0x00;
             break;
         case _phone:
             buffer[13] = 0x07;
             buffer[14] = 0x3c;
-            strncpy(buffer + 16, (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
-            buffer[15] = strlen(buffer + 16);
+            strncpy((char *)(buffer + 16), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[15] = strlen((char *)(buffer + 16));
             buffer[10] = 5 + buffer[15];
             buffer[16 + buffer[15]] = 0x00;
             break;
@@ -757,16 +757,16 @@ int sync_create_field(alc_type type, int field, FIELD *data) {
         case _string:
             buffer[9] = 0x08;
             buffer[10] = 0x3c;
-            strncpy(buffer + 12, (char *)(data->data), 150); /* maximally 150 chars */
-            buffer[11] = strlen(buffer + 12);
+            strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars */
+            buffer[11] = strlen((char *)(buffer + 12));
             buffer[6] = 5 + buffer[11];
             buffer[12 + buffer[11]] = 0x00;
             break;
         case _phone:
             buffer[9] = 0x07;
             buffer[10] = 0x3c;
-            strncpy(buffer + 12, (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
-            buffer[11] = strlen(buffer + 12);
+            strncpy((char *)(buffer + 12), (char *)(data->data), 150); /* maximally 150 chars, maybe here is another limitation... */
+            buffer[11] = strlen((char *)(buffer + 12));
             buffer[6] = 5 + buffer[11];
             buffer[12 + buffer[11]] = 0x00;
             break;

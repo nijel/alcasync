@@ -18,6 +18,6 @@ int  msg_level;
 void message(int severity,char* format, ...);
 
 const char *reform(const char *s,int slot);
-const char *hexdump(const char *s, int size,int slot);
+const char *hexdump(const unsigned char *s, int size,int slot);
 
 #endif

@@ -52,21 +52,21 @@ struct termios oldtio;
      expect - expected string
  */
 
-int modem_cmd(char* command,char* answer,int max,int timeout,char* expect);
+extern int modem_cmd(char* command,char* answer,int max,int timeout,char* expect);
 
-void modem_start_raw();
+extern void modem_start_raw(void);
 
 #define modem_stop_raw() modem_setup()
 
-int modem_send_raw(char *buffer,int len);
-int modem_read_raw(char *buffer,int len);
+extern int modem_send_raw(unsigned char *buffer,int len);
+extern int modem_read_raw(unsigned char *buffer,int len);
 
-void modem_setup(); /* setup serial port */
+extern void modem_setup(void); /* setup serial port */
 
-int modem_init();
+extern int modem_init(void);
 
-int modem_open(); // Open the serial port
+extern int modem_open(void); // Open the serial port
 
-void modem_close();
+extern void modem_close(void);
 
 #endif
