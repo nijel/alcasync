@@ -39,6 +39,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <string.h>
+#include <signal.h>
 
 #include "modem.h"
 #include "mobile_info.h"
@@ -82,6 +83,8 @@ int action_contacts_cat = 0;
 int action_todo = 0;
 int action_todo_cat = 0;
 int action_calendar = 0;
+
+int action_test = 0;
 
 int delete_contacts_cats = 0;
 int delete_todo_cats = 0;
@@ -217,6 +220,8 @@ static const struct option longopts[]={
 {"quiet"            ,0,0,'q'},
 {"verbose"          ,0,0,'v'},
 
+{"test"             ,0,0,'@'},
+
 {"help"             ,0,0,'h'},
 {"version"          ,0,0,'V'},
 {NULL               ,0,0,0  }};
@@ -334,6 +339,10 @@ static const struct option longopts[]={
             case 'v':
                 if (msg_level>MSG_ALL) msg_level--;
                 break;
+            case '@':
+                action_any = 1;
+                action_test = 1;
+                break;
         }
         
     }
@@ -383,6 +392,11 @@ void shutdown() {
         alcatel_done();
     }
     modem_close();
+}
+
+void shutdown_sig(int sig) {
+    signal(sig, SIG_IGN);
+    shutdown();
 }
 
 void print_hex(char *buffer) {
@@ -670,6 +684,69 @@ void write_message() {
     shorten_extra_params(2);
 }
 
+void test() {
+//    int i,j;
+/*        
+//    for (j = 0; j <= 0xff; j++) {
+    j = 0x00;
+        message(MSG_INFO, "TL loop: 0x%X", j);
+//          for (i = 0; i <= 0xff; i++) {
+            alcatel_attach();
+            
+            alcatel_start_session();
+            if ((i = alcatel_select_type(j))==0) {
+                printf("Select suceeded: type:0x%02X \n", j);
+                message(MSG_INFO, "Select suceeded: type:0x%02X", j);
+//                 if (alcatel_begin_transfer(i))
+//                     printf("Begin read suceeded: sync:0x%02X,type:0x%02X \n", i, j);
+            } else {
+                printf("Select failed: type:0x%02X err:0x%02X\n", j, i);
+                message(MSG_INFO, "Select failed: type:0x%02X err:0x%02X", j, i);
+            }
+            alcatel_close_session(j);
+            alcatel_detach();
+//            list_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, (alc_type)i);
+//            list_alc_items((alc_type)i, (alc_type)j);
+//        }   
+//    }
+*/
+    
+    AlcatelFieldStruct field;
+    char test[] = "+420800123456";
+
+    field.type = _phone;
+    field.data = test;
+    field.type = _time;
+    field.data = NULL;
+
+    if (!alcatel_attach()) {
+        message(MSG_ERROR, "Attach failed!");
+    }
+
+    if (alcatel_start_session()) {
+        if (alcatel_select_type(ALC_SYNC_TYPE_TODO)) {
+            alcatel_begin_transfer(ALC_SYNC_TODO);
+
+    //        alcatel_update_field(ALC_SYNC_TYPE_TODO, 20, 4, &field);
+    //        alcatel_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
+        //    alcatel_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
+//            alcatel_delete_field(ALC_SYNC_TYPE_TODO, 88, 2);
+//            alcatel_delete_field(ALC_SYNC_TYPE_TODO, 88, 3);
+            alcatel_delete_item(ALC_SYNC_TYPE_TODO, 88);
+//            alcatel_update_field(ALC_SYNC_TYPE_TODO, 88, 11, &field);
+
+            alcatel_commit(ALC_SYNC_TYPE_TODO);
+        } else {
+            message(MSG_ERROR, "Can not open sync session!");
+        }
+        alcatel_close_session(ALC_SYNC_TYPE_TODO);
+    } else {
+        message(MSG_ERROR, "Can not start session!");
+    }
+    
+    alcatel_detach();
+}
+
 int main(int argc, char *argv[]) {
     char data[1024];
     char *s;
@@ -678,6 +755,7 @@ int main(int argc, char *argv[]) {
     msg_level = MSG_INFO;
 
     atexit(shutdown);
+    signal(SIGINT, shutdown_sig);
     
     parse_params(argc,argv);
 
@@ -703,19 +781,26 @@ int main(int argc, char *argv[]) {
     modem_setup(); 
 
     if (!modem_init()) {
-        switch (modem_errno) {
-            case ERR_MDM_PDU:
-                message(MSG_ERROR, "Failed selecting PDU mode!");
-                exit(4);
-                break;
-            case ERR_MDM_AT:
-                message(MSG_ERROR, "Modem not reacting!");
-                exit(3);
-                break;
-            default:
-                message(MSG_ERROR, "Unknown error!");
-                exit(5);
-                break;
+        // just try to close binary mode...
+        printf ("First init failed, trying to close binary mode\n");
+        alcatel_detach();
+        alcatel_done();
+        
+        if (!modem_init()) {
+            switch (modem_errno) {
+                case ERR_MDM_PDU:
+                    message(MSG_ERROR, "Failed selecting PDU mode!");
+                    exit(4);
+                    break;
+                case ERR_MDM_AT:
+                    message(MSG_ERROR, "Modem not reacting!");
+                    exit(3);
+                    break;
+                default:
+                    message(MSG_ERROR, "Unknown error!");
+                    exit(5);
+                    break;
+            }
         }
     }
     if (action_info) {
@@ -785,11 +870,12 @@ int main(int argc, char *argv[]) {
         if (action_contacts) list_alc_items(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS);
         if (action_calendar) list_alc_items(ALC_SYNC_CALENDAR, ALC_SYNC_TYPE_CALENDAR);
         
+        if (action_test) test();
+
         alcatel_done();
         binary_mode_active = 0;
         
     }
-
 
     return 0;
 }
