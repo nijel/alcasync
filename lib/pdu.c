@@ -14,7 +14,7 @@ int str2pdu(char *str, char *pdu, int charset_conv) {
     char numb[500];
     char octett[10];
     int pdubitposition;
-    int pdubyteposition;
+    int pdubyteposition = 0;
     int strLength;
     int character;
     int bit;
@@ -139,6 +139,12 @@ int split_pdu(char *pdu, char *sendr, time_t *date, char *ascii, char *smsc) {
             memmove(smsc + 1, smsc, strlen(smsc));
             smsc[0] = '+';
         }
+/* TODO:
+ * Decode correctly this: (from: type=145 (int) num=*Hlas)
+ * A242B3C370
+ * * H l a s
+07912460305002000409D02A243B3C0700002020017185054033D6F0BC0CB2BFD9E230280882CBDF206DBAED4E83DEEC7C1B9E56CFD765105A9E0789F3EC30082E4FABC3F4B00B
+*/
     }
     Pointer=pdu+Length+4;
     if (octet2bin(Pointer) == 0x11) {
