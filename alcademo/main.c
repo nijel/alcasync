@@ -92,8 +92,6 @@ char *create_contacts_cat = NULL;
 int wanted_extra_params = 0;
 char **extra_params;
 
-int action_test = 0;
-
 int binary_mode_active = 0;
 
 extern char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20],
@@ -219,8 +217,6 @@ static const struct option longopts[]={
 {"quiet"            ,0,0,'q'},
 {"verbose"          ,0,0,'v'},
 
-{"test"             ,0,0,'@'},
-
 {"help"             ,0,0,'h'},
 {"version"          ,0,0,'V'},
 {NULL               ,0,0,0  }};
@@ -338,10 +334,6 @@ static const struct option longopts[]={
             case 'v':
                 if (msg_level>MSG_ALL) msg_level--;
                 break;
-            case '@':
-                action_any = 1;
-                action_test = 1;
-                break;
         }
         
     }
@@ -405,7 +397,7 @@ void create_alc_cat(alc_type sync, alc_type type, alc_type cat, char *name) {
 
     alcatel_start_session();
 
-    if (alcatel_select_type(type) == 0) {
+    if (alcatel_select_type(type)) {
         alcatel_begin_transfer(sync);
 
         printf("Category created with number %d\n", alcatel_create_obj_list_item(type, cat, name));
@@ -428,7 +420,7 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
 
     alcatel_start_session();
 
-    if (alcatel_select_type(type) == 0) {
+    if (alcatel_select_type(type)) {
         alcatel_begin_transfer(sync);
 
         list = alcatel_get_obj_list(type, cat);
@@ -465,7 +457,7 @@ void del_alc_cats(alc_type sync, alc_type type, alc_type cat) {
 
     alcatel_start_session();
 
-    if (alcatel_select_type(type) == 0) {
+    if (alcatel_select_type(type)) {
         alcatel_begin_transfer(sync);
 
         alcatel_del_obj_list_items(type, cat);
@@ -678,60 +670,6 @@ void write_message() {
     shorten_extra_params(2);
 }
 
-void test() {
-    int i,j;
-        
-//**    for (j = 0; j <= 0xff; j++) {
-    j = 0x00;
-        message(MSG_INFO, "TL loop: 0x%X", j);
-//*        for (i = 0; i <= 0xff; i++) {
-            alcatel_attach();
-            
-            alcatel_start_session();
-            if ((i = alcatel_select_type(j))==0) {
-                printf("Select suceeded: type:0x%02X \n", j);
-                message(MSG_INFO, "Select suceeded: type:0x%02X", j);
-//*                if (alcatel_begin_transfer(i))
-//*                    printf("Begin read suceeded: sync:0x%02X,type:0x%02X \n", i, j);
-            } else {
-                printf("Select failed: type:0x%02X err:0x%02X\n", j, i);
-                message(MSG_INFO, "Select failed: type:0x%02X err:0x%02X", j, i);
-            }
-            alcatel_close_session(j);
-            alcatel_detach();
-//            list_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, (alc_type)i);
-//            list_alc_items((alc_type)i, (alc_type)j);
-//*        }   
-//**    }
-
-/*    
-    AlcatelFieldStruct field;
-    char test[] = "TESTovaci ToDo";
-
-    field.type = _string;
-    field.data = test;
-
-    alcatel_attach();
-
-    alcatel_start_session();
-
-    if (alcatel_select_type(ALC_SYNC_TYPE_TODO) == 0) {
-        alcatel_begin_transfer(ALC_SYNC_TODO);
-
-        alcatel_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
-        alcatel_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
-//int alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
-    //    alcatel_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
-
-        alcatel_commit(ALC_SYNC_TYPE_TODO);
-    } else {
-        message(MSG_ERROR, "Can not open sync session!");
-    }
-    
-    alcatel_close_session(ALC_SYNC_TYPE_TODO);
-    alcatel_detach();*/
-}
-
 int main(int argc, char *argv[]) {
     char data[1024];
     char *s;
@@ -846,9 +784,6 @@ int main(int argc, char *argv[]) {
         if (action_contacts_cat) list_alc_cats(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS, ALC_LIST_CONTACTS_CAT);
         if (action_contacts) list_alc_items(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS);
         if (action_calendar) list_alc_items(ALC_SYNC_CALENDAR, ALC_SYNC_TYPE_CALENDAR);
-    if (action_test) {
-        test();
-    }
         
         alcatel_done();
         binary_mode_active = 0;

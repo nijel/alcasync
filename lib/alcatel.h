@@ -215,7 +215,7 @@ char *alcatel_get_obj_list_item(alc_type type, alc_type list, int item);
 
 /** Creates category.
  */
-int alcatel_create_obj_list_item(alc_type type, alc_type list, char *item);
+int alcatel_create_obj_list_item(alc_type type, alc_type list, const char *item);
 
 /** Commits changes.
  */

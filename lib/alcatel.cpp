@@ -720,7 +720,7 @@ bool alcatel_del_obj_list_items(alc_type type, alc_type list) {
     return true;
 }
 
-int alcatel_create_obj_list_item(alc_type type, alc_type list, char *item) {
+int alcatel_create_obj_list_item(alc_type type, alc_type list, const char *item) {
     alc_type buffer[256] = {0x00, 0x04, type, 0x0d, list, 0x0b };
     alc_type *data;
     int i;
