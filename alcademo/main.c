@@ -83,6 +83,12 @@ int action_todo = 0;
 int action_todo_cat = 0;
 int action_calendar = 0;
 
+int delete_contacts_cats = 0;
+int delete_todo_cats = 0;
+
+char *create_todo_cat = NULL;
+char *create_contacts_cat = NULL;
+
 int wanted_extra_params = 0;
 char **extra_params;
 
@@ -120,6 +126,13 @@ void help() {
     printf("    -t/--todo ... list todo entries\n");
     printf("    -T/--todo-cat ... list todo categories\n");
     printf("    -C/--contacts-cat ... list contacts categories\n");
+    printf("    --create-todo-cat=<s> ... creates todo category\n");
+    printf("    --create-contacts-cat=<s> ... creates contacts category\n");
+    printf("    --delete-todo-cats ... deletes ALL todo categories *\n");
+    printf("    --delete-contacts-cats ... deletes ALL contacts categories *\n");
+    printf("       * = both delete ONLY caregories and contacts/todos remain unchanged, when");
+    printf("           you recreate again category with same number, it will work ok, this is");
+    printf("           currently only way how to chaneg category");
 	
     printf("SMS mode mode actions (in order of execution if appers more):\n");
     printf("    -x<n>/--delete=<n> ... delete message number <n>\n");
@@ -171,39 +184,45 @@ void version() {
 void parse_params(int argc, char *argv[]) {
     int result, i;
     char *devname;
-
+    
 static const struct option longopts[]={
-{"info"        ,0,0,'i'},
-{"monitor"     ,0,0,'m'},
-{"sms"         ,2,0,'s'},
-{"binary"      ,1,0,'b'},
+{"info"             ,0,0,'i'},
+{"monitor"          ,0,0,'m'},
+{"sms"              ,2,0,'s'},
+{"binary"           ,1,0,'b'},
     
-{"read"        ,1,0,'r'},
-{"delete"      ,1,0,'x'},
-{"list"        ,0,0,'l'},
+{"read"             ,1,0,'r'},
+{"delete"           ,1,0,'x'},
+{"list"             ,0,0,'l'},
 
-{"write"       ,2,0,'w'},
-{"send"        ,0,0,'S'},
+{"write"            ,2,0,'w'},
+{"send"             ,0,0,'S'},
 
-{"contacts"    ,0,0,'c'},
-{"calendar"    ,0,0,'a'},
-{"todo"        ,0,0,'t'},
-{"todo-cat"    ,0,0,'T'},
-{"contacts-cat",0,0,'C'},
+{"contacts"         ,0,0,'c'},
+{"calendar"         ,0,0,'a'},
+{"todo"             ,0,0,'t'},
+{"todo-cat"         ,0,0,'T'},
+{"contacts-cat"     ,0,0,'C'},
+ 
+{"delete-todo-cats"  ,0,0,3},
+{"delete-contacts-cats",0,0,4},
 
-{"rate"        ,1,0,'B'},
-{"init"        ,1,0,'I'},
-{"lock"        ,1,0,'K'},
-{"device"      ,1,0,'d'},
+{"create-todo-cat"  ,1,0,1},
+{"create-contacts-cat",1,0,2},
+
+{"rate"             ,1,0,'B'},
+{"init"             ,1,0,'I'},
+{"lock"             ,1,0,'K'},
+{"device"           ,1,0,'d'},
     
-{"quiet"       ,0,0,'q'},
-{"verbose"     ,0,0,'v'},
+{"quiet"            ,0,0,'q'},
+{"verbose"          ,0,0,'v'},
 
-{"test"        ,0,0,'@'},
+{"test"             ,0,0,'@'},
 
-{"help"        ,0,0,'h'},
-{"version"     ,0,0,'V'},
-{NULL          ,0,0,0  }};
+{"help"             ,0,0,'h'},
+{"version"          ,0,0,'V'},
+{NULL               ,0,0,0  }};
 
 
     progname = argv[0];
@@ -217,6 +236,18 @@ static const struct option longopts[]={
 
     while ((result=getopt_long(argc,argv,"bcatCThd:K:I:B:is::SvqVr:x:lTmw::",longopts,NULL))>0) {
         switch (result) {
+            case 1:
+                create_todo_cat = strdup(optarg);
+                break;
+            case 2:
+                create_contacts_cat = strdup(optarg);
+                break;
+            case 3:
+                delete_todo_cats = 1;
+                break;
+            case 4:
+                delete_contacts_cats = 1;
+                break;
             case 'w':
                 wanted_extra_params += 2;
                 action_write = 1;
@@ -368,6 +399,22 @@ void print_hex(char *buffer) {
         printf ("%c%c (%c) ", conv[((char)buffer[i] & 0xff) >> 4], conv[buffer[i] & 0x0f], isprint(buffer[i])?buffer[i]:'*');
 }
 
+void create_alc_cat(alc_type sync, alc_type type, alc_type cat, char *name) {
+    alcatel_attach();
+
+    sync_start_session();
+
+    sync_select_type(type);
+    sync_begin_read(sync);
+
+    printf("Category created with number %d\n", sync_create_obj_list_item(type, cat, name));
+
+    sync_commit(type);
+    
+    sync_close_session(type);
+    alcatel_detach();
+}
+
 void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     int *list;
     int i;
@@ -380,6 +427,7 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     sync_select_type(type);
     sync_begin_read(sync);
 
+
     list = sync_get_obj_list(type, cat);
     
     message(MSG_INFO, "Received %d categories:", list[0]);
@@ -391,6 +439,22 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     }
     
     free(list);
+
+    sync_close_session(type);
+    alcatel_detach();
+}
+
+void del_alc_cats(alc_type sync, alc_type type, alc_type cat) {
+    alcatel_attach();
+
+    sync_start_session();
+
+    sync_select_type(type);
+    sync_begin_read(sync);
+
+    sync_del_obj_list_items(type, cat);
+
+    sync_commit(type);
     
     sync_close_session(type);
     alcatel_detach();
@@ -575,7 +639,19 @@ void write_message() {
 }
 
 void test() {
-    printf ("Currently no feature to test!\n");
+    alcatel_attach();
+
+    sync_start_session();
+
+    sync_select_type(ALC_SYNC_TYPE_TODO);
+    sync_begin_read(ALC_SYNC_TODO);
+
+//    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
+
+    sync_commit(ALC_SYNC_TYPE_TODO);
+    
+    sync_close_session(ALC_SYNC_TYPE_TODO);
+    alcatel_detach();
 }
 
 int main(int argc, char *argv[]) {
@@ -650,20 +726,26 @@ int main(int argc, char *argv[]) {
         alcatel_init();
         binary_mode_active = 1;
 
+        if (delete_todo_cats) del_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT);
+        if (delete_contacts_cats) del_alc_cats(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS, ALC_LIST_CONTACTS_CAT);
+
+
+        if (create_todo_cat != NULL) create_alc_cat(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, create_todo_cat);
+        if (create_contacts_cat != NULL) create_alc_cat(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS, ALC_LIST_CONTACTS_CAT, create_contacts_cat);
         if (action_todo_cat) list_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT);
         if (action_todo) list_alc_items(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO);
         if (action_contacts_cat) list_alc_cats(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS, ALC_LIST_CONTACTS_CAT);
         if (action_contacts) list_alc_items(ALC_SYNC_CONTACTS, ALC_SYNC_TYPE_CONTACTS);
         if (action_calendar) list_alc_items(ALC_SYNC_CALENDAR, ALC_SYNC_TYPE_CALENDAR);
+    if (action_test) {
+		test();
+    }
         
         alcatel_done();
         binary_mode_active = 0;
         
     }
 
-    if (action_test) {
-		test();
-    }
 
     return 0;
 }

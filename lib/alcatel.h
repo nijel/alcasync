@@ -147,4 +147,7 @@ int *sync_get_obj_list(alc_type type, alc_type list);
 /* Returns name for selected category. */
 char *sync_get_obj_list_item(alc_type type, alc_type list, int item);
 
+int sync_create_obj_list_item(alc_type type, alc_type list, char *item);
+void sync_commit(alc_type type);
+void sync_del_obj_list_items(alc_type type, alc_type list);
 #endif

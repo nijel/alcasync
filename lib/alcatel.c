@@ -539,7 +539,8 @@ int *sync_get_obj_list(alc_type type, alc_type list) {
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
 
-    count = data[12];
+    if (data[4] < 8) count = 0;
+    else count = data[12];
 
     result = (int *)malloc((count + 1)* sizeof(int));
     chk(result);
@@ -569,10 +570,55 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
     result = (alc_type *)malloc(len + 1);
     chk(result);
 
-
     memcpy(result,data + 15, len);
+
+    free(data);
     
     result[len] = 0;
     
     return result;
+}
+
+void sync_del_obj_list_items(alc_type type, alc_type list) {
+    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x0e, list | 0x90};
+
+    alcatel_send_packet(ALC_DATA, buffer, 5); 
+    free(alcatel_recv_ack(ALC_ACK));
+    free(alcatel_recv_packet(1));
+    free(alcatel_recv_packet(1));
+}
+
+int sync_create_obj_list_item(alc_type type, alc_type list, char *item) {
+    alc_type buffer[256] = {0x00, 0x04, type | 0x60, 0x0d, list | 0x90, 0x0b };
+    alc_type *data;
+    int i;
+
+    i = strlen(item);
+    buffer[6] = (alc_type)(i + 1);
+    buffer[7] = (alc_type)i;
+    memcpy(buffer + 8, item, i);
+
+    alcatel_send_packet(ALC_DATA, buffer, 8 + i); 
+    free(alcatel_recv_ack(ALC_ACK));
+    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    
+    i = data[12]; 
+    free(data);
+    return i;
+}
+
+void sync_commit(alc_type type) {
+    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x20, 0x01 };
+    alc_type *data;
+//                                                      ^^^^
+// this is session id, but this software currently supports only one session...
+
+    alcatel_send_packet(ALC_DATA, buffer, 5); 
+    free(alcatel_recv_ack(ALC_ACK));
+    data = alcatel_recv_packet(1);
+    if (data[8] == 0) {
+        free(alcatel_recv_packet(1));
+    }
+    free(data);
 }
