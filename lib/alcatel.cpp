@@ -50,6 +50,8 @@
 #define SLEEP_CHANGE    10000
 #define SLEEP_FAIL      100
 
+int alcatel_errno;
+
 char alc_contacts_field_names[ALC_CONTACTS_FIELDS][20] = {
     "LastName",
     "FirstName",
@@ -124,7 +126,7 @@ int recv_buffer_pos = 0;
 
 void alcatel_send_packet(alc_type type, alc_type *data, alc_type len) {
     static alc_type buffer[1024];
-    int size = 0, i, xor = 0;
+    int size = 0, i, checksum = 0;
     buffer[0] = 0x7E;
     buffer[1] = type;
     switch (type) {
@@ -152,8 +154,8 @@ void alcatel_send_packet(alc_type type, alc_type *data, alc_type len) {
             break;
     }
     for (i=0; i<size; i++)
-        xor ^= buffer[i];
-    buffer[size] = xor;
+        checksum ^= buffer[i];
+    buffer[size] = checksum;
     size ++;
     message(MSG_DEBUG,"Sending packet %s", hexdump(buffer, size, 1));
     modem_send_raw(buffer, size); 
@@ -175,7 +177,6 @@ int alcatel_recv_data(int size) {
             if (fails > 100) {
                 message(MSG_ERROR,"Reading failed...");
                 return false;
-//                exit(10);
             }
         }
     }
@@ -289,69 +290,114 @@ alc_type *alcatel_recv_ack(alc_type type){
     }
 }
 
-void alcatel_init(){
+bool alcatel_init(void){
     char answer[500];
+    alc_type *data;
 
     message(MSG_DETAIL,"Entering Alcatel binary mode");
     modem_cmd("AT+IFC=2,2\r",answer,sizeof(answer),100,0);
     modem_cmd("AT+CPROT=16,\"V1.0\",16\r",answer,sizeof(answer),100,"CONNECT");
     message(MSG_DEBUG,"Alcatel binary mode started");
     alcatel_send_packet(ALC_CONNECT,0,0);
-    free(alcatel_recv_ack(ALC_CONNECT_ACK));
+    data = alcatel_recv_ack(ALC_CONNECT_ACK);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
     usleep(SLEEP_CHANGE);
+    return true;
 }
 
-void alcatel_attach(){
+bool alcatel_attach(void){
+    alc_type *data;
     alc_type buffer[] = {0x00,0x00,0x7C,0x20};
+
     message(MSG_DETAIL, "Attaching to Alcatel");
     alcatel_send_packet(ALC_DATA, buffer, 4); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
     message(MSG_DEBUG2,"Attached to Alcatel");
+    return true;
 }
 
-void alcatel_detach(){
+bool alcatel_detach(void){
+    alc_type *data;
     alc_type buffer[] = {0x00,0x01,0x7C,0x00};
+
     message(MSG_DETAIL, "Detaching from Alcatel");
     alcatel_send_packet(ALC_DATA, buffer, 4); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
     message(MSG_DEBUG2, "Detached from Alcatel");
+    return true;
 }
 
-void alcatel_done(){
+bool alcatel_done(void){
+    alc_type *data;
+
     message(MSG_DETAIL,"Leaving Alcatel binary mode");
     alcatel_send_packet(ALC_DISCONNECT,0,0);
-    free(alcatel_recv_ack(ALC_DISCONNECT_ACK));
+    data = alcatel_recv_ack(ALC_DISCONNECT_ACK);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
     usleep(SLEEP_CHANGE);
+    return true;
 }
 
-void sync_start_session() {
+bool alcatel_start_session(void) {
+    alc_type *data;
     alc_type buffer[] = {0x00, 0x04, 0x7C, 0x80, 0x12, 0x34, 0x56, 0x78};
 //                                               ^^^^^^^^^^^^^^^^^^^^^^ - this is DBID but it was always same...
-    
-    message(MSG_INFO,"Starting sync session");
+
+    message(MSG_INFO,"Starting alcatel session");
     alcatel_send_packet(ALC_DATA, buffer, 8); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
+    return true;
 }
 
-void sync_close_session(alc_type type) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x23, 0x01};
+bool alcatel_close_session(alc_type type) {
+    alc_type *data;
+    alc_type buffer[] = {0x00, 0x04, type, 0x23, 0x01};
 //                                                      ^^^^
 // this is session id, but this software currently supports only one session...
     
-    message(MSG_INFO,"Closing sync session");
+    message(MSG_INFO,"Closing alcatel session");
     alcatel_send_packet(ALC_DATA, buffer, 5); 
     free(alcatel_recv_ack(ALC_ACK));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
+    return true;
 }
 
-int sync_select_type(alc_type type) {
-    alc_type buffer[] = {0x00, 0x00, type | 0x60, 0x20};
-    alc_type buffer2[] = {0x00, 0x04, type | 0x60, 0x22, 0x01, 0x00};
+bool alcatel_select_type(alc_type type) {
+    alc_type buffer[] = {0x00, 0x00, type, 0x20};
+    alc_type buffer2[] = {0x00, 0x04, type, 0x22, 0x01, 0x00};
 
-    int result;
+    bool result;
     alc_type *answer;
     
     message(MSG_INFO,"Setting sync type: %02X", type);
@@ -362,32 +408,40 @@ int sync_select_type(alc_type type) {
     
     alcatel_send_packet(ALC_DATA, buffer2, 6); 
     free(alcatel_recv_ack(ALC_ACK));
-//    free(alcatel_recv_packet(1));
 
     answer = alcatel_recv_packet(1);
-    if (!answer) return -1;
+    if (answer == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
 
-    result = answer[8];
+    result = (answer[8] == 0);
     
     free(answer);
 
-    if (result == 0)
+    if (result)
         free(alcatel_recv_packet(1));
+    else
+        alcatel_errno = answer[8];
 
     return result;
 }
 
-void sync_begin_read(alc_type type) {
+bool alcatel_begin_transfer(alc_type type) {
+    alc_type *data;
     alc_type buffer[] = {0x00, 0x04, 0x7C, 0x81, type, 0x00, 0x85, 0x00};
     
     alcatel_send_packet(ALC_DATA, buffer, 8); 
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) return false;
+    free(data);
+    return true;
 }
 
-int *sync_get_ids(alc_type type) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x2F, 0x01};
+int *alcatel_get_ids(alc_type type) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x2F, 0x01};
     alc_type *data;
     int *result;
     int count = 0, i, pos;
@@ -396,7 +450,10 @@ int *sync_get_ids(alc_type type) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
-    if (!data) return NULL;
+    if (data==NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return NULL;
+    }
 
     count = data[10];
 
@@ -415,8 +472,8 @@ int *sync_get_ids(alc_type type) {
     return result;
 }
 
-int *sync_get_fields(alc_type type, int item) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x30, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff)};
+int *alcatel_get_fields(alc_type type, int item) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x30, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff)};
     alc_type *data;
     int *result;
     int count = 0, i;
@@ -425,7 +482,10 @@ int *sync_get_fields(alc_type type, int item) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
-    if (!data) return NULL;
+    if (data==NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return NULL;
+    }
 
     count = data[14];
 
@@ -441,8 +501,8 @@ int *sync_get_fields(alc_type type, int item) {
     return result;
 }
 
-alc_type *sync_get_field_value(alc_type type, int item, int field) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x1f, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), (field & 0xff)};
+alc_type *alcatel_get_field_value(alc_type type, int item, int field) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x1f, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), (field & 0xff)};
     alc_type *data;
     alc_type *result;
     int len;
@@ -451,7 +511,10 @@ alc_type *sync_get_field_value(alc_type type, int item, int field) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
-    if (!data) return NULL;
+    if (data==NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return NULL;
+    }
 
     len = data[4] - 10; 
 
@@ -559,8 +622,8 @@ AlcatelFieldStruct *decode_field_value(alc_type *buffer) {
 
 }
 
-int *sync_get_obj_list(alc_type type, alc_type list) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x0b, list | 0x90};
+int *alcatel_get_obj_list(alc_type type, alc_type list) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x0b, list};
     alc_type *data;
     int *result;
     int count = 0, i;
@@ -569,6 +632,10 @@ int *sync_get_obj_list(alc_type type, alc_type list) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
+    if (data==NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return NULL;
+    }
 
     if (data[4] < 8) count = 0;
     else count = data[12];
@@ -581,12 +648,13 @@ int *sync_get_obj_list(alc_type type, alc_type list) {
     for (i = 0; i < count; i++) {
         result[i + 1] = data[13 + i];
     }
+    free(data);
 
     return result;
 }
 
-char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x0c, list | 0x90, 0x0A, 0x01, (item & 0xff) };
+char *alcatel_get_obj_list_item(alc_type type, alc_type list, int item) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x0c, list, 0x0A, 0x01, (item & 0xff) };
     alc_type *data;
     char *result;
     int len;
@@ -596,6 +664,10 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
+    if (data==NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return NULL;
+    }
 
     len = data[14]; 
 
@@ -613,17 +685,24 @@ char *sync_get_obj_list_item(alc_type type, alc_type list, int item) {
     return result;
 }
 
-void sync_del_obj_list_items(alc_type type, alc_type list) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x0e, list | 0x90};
+bool alcatel_del_obj_list_items(alc_type type, alc_type list) {
+    alc_type *data;
+    alc_type buffer[] = {0x00, 0x04, type, 0x0e, list};
 
     alcatel_send_packet(ALC_DATA, buffer, 5); 
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
-    free(alcatel_recv_packet(1));
+    data = alcatel_recv_packet(1);
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
+    free(data);
+    return true;
 }
 
-int sync_create_obj_list_item(alc_type type, alc_type list, char *item) {
-    alc_type buffer[256] = {0x00, 0x04, type | 0x60, 0x0d, list | 0x90, 0x0b };
+int alcatel_create_obj_list_item(alc_type type, alc_type list, char *item) {
+    alc_type buffer[256] = {0x00, 0x04, type, 0x0d, list, 0x0b };
     alc_type *data;
     int i;
 
@@ -636,34 +715,46 @@ int sync_create_obj_list_item(alc_type type, alc_type list, char *item) {
     free(alcatel_recv_ack(ALC_ACK));
     free(alcatel_recv_packet(1));
     data = alcatel_recv_packet(1);
-    
+    if (data == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return -1;
+    }
+
     i = data[12]; 
     free(data);
     return i;
 }
 
-void sync_commit(alc_type type) {
-    alc_type buffer[] = {0x00, 0x04, type | 0x60, 0x20, 0x01 };
-    alc_type *data;
+int alcatel_commit(alc_type type) {
+    alc_type buffer[] = {0x00, 0x04, type, 0x20, 0x01 };
 //                                                      ^^^^
 // this is session id, but this software currently supports only one session...
+    alc_type *data;
+    int result;
 
     alcatel_send_packet(ALC_DATA, buffer, 5); 
     free(alcatel_recv_ack(ALC_ACK));
     data = alcatel_recv_packet(1);
     if (data[8] == 0) {
-        free(alcatel_recv_packet(1));
+        free(data);
+        data = alcatel_recv_packet(1);
+        result = data[12] + (data[11] << 8) + (data[10] << 16) + (data[9] << 24);
 //      7E 02 15 00 09 00 07 68 20 00 00 00 37 00 18
 //                                 ^^^^^^^^^^^ should be returned....
+        free(data);
+    } else {
+        alcatel_errno = ALC_ERR_DATA;
+        result = -1;
     }
     free(data);
+    return result;
 }
 
-int sync_update_field(alc_type type, int item, int field, AlcatelFieldStruct *data) {
-    alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff), 
+bool alcatel_update_field(alc_type type, int item, int field, AlcatelFieldStruct *data) {
+    alc_type buffer[180] = {0x00, 0x04, type, 0x26, 0x01, (item >> 24), ((item >> 16) & 0xff), ((item >> 8) & 0xff), (item & 0xff),
         0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
     alc_type *answer;
-    int result;
+    bool result;
     int j;
     
     switch (data->type) {
@@ -742,18 +833,23 @@ int sync_update_field(alc_type type, int item, int field, AlcatelFieldStruct *da
     alcatel_send_packet(ALC_DATA, buffer, 12 + buffer[10]); 
     free(alcatel_recv_ack(ALC_ACK));
     answer = alcatel_recv_packet(1);
+    if (answer == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
 
-    result = answer[8];
+    if (!(result = (answer[8] == 0)))
+        alcatel_errno = answer[8];
 
     free(answer);
 
     return result;
 }
 
-int sync_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
-    alc_type buffer[180] = {0x00, 0x04, type | 0x60, 0x25, 0x01, 0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
+bool alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
+    alc_type buffer[180] = {0x00, 0x04, type, 0x25, 0x01, 0x65, 0x00 /* length of remaining part */, (field & 0xff), 0x37 /* here follows data */};
     alc_type *answer;
-    int result;
+    bool result;
     
     switch (data->type) {
         case _date:
@@ -829,8 +925,13 @@ int sync_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
     alcatel_send_packet(ALC_DATA, buffer, 8 + buffer[6]); 
     free(alcatel_recv_ack(ALC_ACK));
     answer = alcatel_recv_packet(1);
+    if (answer == NULL) {
+        alcatel_errno = ALC_ERR_DATA;
+        return false;
+    }
 
-    result = answer[8];
+    if (!(result = (answer[8] == 0)))
+        alcatel_errno = answer[8];
 
     free(answer);
 

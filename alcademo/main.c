@@ -60,7 +60,7 @@ int default_rate = 19200;
 int action_any = 0;
 int action_info = 0;
 int action_monitor = 0;
-int action_sms = 0;
+int action_message = 0;
 int action_binary = 0;
 
 int action_implicit = 0;
@@ -311,7 +311,7 @@ static const struct option longopts[]={
                 break;
             case 's':
                 action_any = 1;
-                action_sms = 1;
+                action_message = 1;
                 if (optarg == NULL) {
                     action_implicit = 1;
                     break;
@@ -403,19 +403,19 @@ void print_hex(char *buffer) {
 void create_alc_cat(alc_type sync, alc_type type, alc_type cat, char *name) {
     alcatel_attach();
 
-    sync_start_session();
+    alcatel_start_session();
 
-    if (sync_select_type(type) == 0) {
-        sync_begin_read(sync);
+    if (alcatel_select_type(type) == 0) {
+        alcatel_begin_transfer(sync);
 
-        printf("Category created with number %d\n", sync_create_obj_list_item(type, cat, name));
+        printf("Category created with number %d\n", alcatel_create_obj_list_item(type, cat, name));
 
-        sync_commit(type);
+        alcatel_commit(type);
     } else {
         message(MSG_ERROR, "Can not open sync session!");
     }
     
-    sync_close_session(type);
+    alcatel_close_session(type);
     alcatel_detach();
 }
 
@@ -426,17 +426,27 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
 
     alcatel_attach();
 
-    sync_start_session();
+    alcatel_start_session();
 
-    if (sync_select_type(type) == 0) {
-        sync_begin_read(sync);
+    if (alcatel_select_type(type) == 0) {
+        alcatel_begin_transfer(sync);
 
-        list = sync_get_obj_list(type, cat);
+        list = alcatel_get_obj_list(type, cat);
+        if (list == NULL) {
+            alcatel_close_session(type);
+            alcatel_detach();
+            return;
+        }
     
         message(MSG_INFO, "Received %d categories:", list[0]);
 
         for (i = 1; i <= list[0]; i++) {
-            result = sync_get_obj_list_item(type, cat, list[i]);
+            result = alcatel_get_obj_list_item(type, cat, list[i]);
+            if (result == NULL) {
+                alcatel_close_session(type);
+                alcatel_detach();
+                return;
+            }
             printf ("%02d: %s\n", list[i],  result);
             free(result);
         }
@@ -446,26 +456,26 @@ void list_alc_cats(alc_type sync, alc_type type, alc_type cat) {
         message(MSG_ERROR, "Can not open sync session!");
     }
 
-    sync_close_session(type);
+    alcatel_close_session(type);
     alcatel_detach();
 }
 
 void del_alc_cats(alc_type sync, alc_type type, alc_type cat) {
     alcatel_attach();
 
-    sync_start_session();
+    alcatel_start_session();
 
-    if (sync_select_type(type) == 0) {
-        sync_begin_read(sync);
+    if (alcatel_select_type(type) == 0) {
+        alcatel_begin_transfer(sync);
 
-        sync_del_obj_list_items(type, cat);
+        alcatel_del_obj_list_items(type, cat);
 
-        sync_commit(type);
+        alcatel_commit(type);
     } else {
         message(MSG_ERROR, "Can not open sync session!");
     }
     
-    sync_close_session(type);
+    alcatel_close_session(type);
     alcatel_detach();
 }
 
@@ -491,13 +501,13 @@ void list_alc_items(alc_type sync, alc_type type) {
                 
     alcatel_attach();
     
-    sync_start_session();
-    if (sync_select_type(type) == 0) {
-        sync_begin_read(sync);
+    alcatel_start_session();
+    if (alcatel_select_type(type)) {
+        alcatel_begin_transfer(sync);
 
-        ids = sync_get_ids(type);
+        ids = alcatel_get_ids(type);
         if (ids == NULL) {
-            sync_close_session(type);
+            alcatel_close_session(type);
             alcatel_detach();
             return;
         }
@@ -506,9 +516,9 @@ void list_alc_items(alc_type sync, alc_type type) {
         
         for (i = 1; i <= ids[0]; i++) {
             message(MSG_DEBUG, "Reading id[%d] = %d", i-1, ids[i]);
-            items = sync_get_fields(type, ids[i]);
+            items = alcatel_get_fields(type, ids[i]);
             if (items == NULL) {
-                sync_close_session(type);
+                alcatel_close_session(type);
                 alcatel_detach();
                 return;
             }
@@ -516,9 +526,9 @@ void list_alc_items(alc_type sync, alc_type type) {
             printf ("Item %d (fields: %d):\n", ids[i], items[0]);
             for (j = 1; j <= items[0]; j++) {
                 message(MSG_DEBUG, "items[%d] = %d", j-1, items[j]);
-                result = sync_get_field_value(type, ids[i], items[j]);
+                result = alcatel_get_field_value(type, ids[i], items[j]);
                 if (result == NULL) {
-                    sync_close_session(type);
+                    alcatel_close_session(type);
                     alcatel_detach();
                     return;
                 }
@@ -584,7 +594,7 @@ void list_alc_items(alc_type sync, alc_type type) {
         message(MSG_ERROR, "Can not open sync session!");
     }
     
-    sync_close_session(type);
+    alcatel_close_session(type);
     alcatel_detach();
 }
 
@@ -610,7 +620,7 @@ void print_message(MessageData* sms) {
 void list_messages() {
     MessageData *sms;
     int i;
-    sms = get_smss(MESSAGE_ALL);
+    sms = get_messages(MESSAGE_ALL);
     i = 0;
     while (sms[i].pos != -1) {
         print_message(sms+i);
@@ -624,7 +634,7 @@ void read_messages() {
     MessageData *sms;
     int i;
     for (i = 0; i < action_read_pos; i++){
-        sms = get_sms(action_read[i]);
+        sms = get_message(action_read[i]);
         if (sms) {
             print_message(sms);
             free(sms);
@@ -638,7 +648,7 @@ void read_messages() {
 void delete_messages() {
     int i;
     for (i = 0; i < action_del_pos; i++){
-        if (delete_sms(action_del[i])) {
+        if (delete_message(action_del[i])) {
             message(MSG_INFO,"Message %d deleted!", action_del[i]);
         } else {
             message(MSG_ERROR,"Message %d not found!", action_del[i]);
@@ -651,7 +661,7 @@ void send_message() {
     int i;
     
     make_pdu(extra_params[0], extra_params[1], 0, PDU_CLASS_SIM, pdu);
-    i = send_sms(pdu);
+    i = send_message(pdu);
     if (i != -1) printf ("Message send, message reference = %d\n", i);
     else message(MSG_ERROR, "Message not sent!");
     shorten_extra_params(2);
@@ -662,7 +672,7 @@ void write_message() {
     int i;
 
     make_pdu(extra_params[0], extra_params[1], 0, PDU_CLASS_SIM, pdu);
-    i = put_sms(pdu, (action_write_type == 0) ? MESSAGE_SENT : MESSAGE_UNSENT);
+    i = put_message(pdu, (action_write_type == 0) ? MESSAGE_SENT : MESSAGE_UNSENT);
     if (i != -1) printf ("Message written at position %d\n", i);
     else message(MSG_ERROR, "Message not written!");
     shorten_extra_params(2);
@@ -671,12 +681,28 @@ void write_message() {
 void test() {
     int i,j;
         
-    for (i = 0; i < 0xf; i++) {
-        printf("TLD loop: 0x%X\n", i);
-        for (j = 0; j < 0x1f; j++) {
-            list_alc_items((alc_type)i, (alc_type)j);
-        }   
-    }
+//**    for (j = 0; j <= 0xff; j++) {
+    j = 0x00;
+        message(MSG_INFO, "TL loop: 0x%X", j);
+//*        for (i = 0; i <= 0xff; i++) {
+            alcatel_attach();
+            
+            alcatel_start_session();
+            if ((i = alcatel_select_type(j))==0) {
+                printf("Select suceeded: type:0x%02X \n", j);
+                message(MSG_INFO, "Select suceeded: type:0x%02X", j);
+//*                if (alcatel_begin_transfer(i))
+//*                    printf("Begin read suceeded: sync:0x%02X,type:0x%02X \n", i, j);
+            } else {
+                printf("Select failed: type:0x%02X err:0x%02X\n", j, i);
+                message(MSG_INFO, "Select failed: type:0x%02X err:0x%02X", j, i);
+            }
+            alcatel_close_session(j);
+            alcatel_detach();
+//            list_alc_cats(ALC_SYNC_TODO, ALC_SYNC_TYPE_TODO, (alc_type)i);
+//            list_alc_items((alc_type)i, (alc_type)j);
+//*        }   
+//**    }
 
 /*    
     AlcatelFieldStruct field;
@@ -687,22 +713,22 @@ void test() {
 
     alcatel_attach();
 
-    sync_start_session();
+    alcatel_start_session();
 
-    if (sync_select_type(ALC_SYNC_TYPE_TODO) == 0) {
-        sync_begin_read(ALC_SYNC_TODO);
+    if (alcatel_select_type(ALC_SYNC_TYPE_TODO) == 0) {
+        alcatel_begin_transfer(ALC_SYNC_TODO);
 
-        sync_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
-        sync_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
-//int sync_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
-    //    sync_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
+        alcatel_update_field(ALC_SYNC_TYPE_TODO, 55, 4, &field);
+        alcatel_create_field(ALC_SYNC_TYPE_TODO, 4, &field);
+//int alcatel_create_field(alc_type type, int field, AlcatelFieldStruct *data) {
+    //    alcatel_del_obj_list_item(ALC_SYNC_TYPE_TODO, ALC_LIST_TODO_CAT, 5);
 
-        sync_commit(ALC_SYNC_TYPE_TODO);
+        alcatel_commit(ALC_SYNC_TYPE_TODO);
     } else {
         message(MSG_ERROR, "Can not open sync session!");
     }
     
-    sync_close_session(ALC_SYNC_TYPE_TODO);
+    alcatel_close_session(ALC_SYNC_TYPE_TODO);
     alcatel_detach();*/
 }
 
@@ -777,7 +803,7 @@ int main(int argc, char *argv[]) {
         printf ("SMS centre number: %s\n", s);
     }
 
-    if (action_sms) {
+    if (action_message) {
         if (action_del_pos > 0) {
             delete_messages();
             action_implicit = 0;

@@ -62,23 +62,23 @@ struct MessageData {
 
 /** Deletes message
   */
-int delete_sms(int which);
+int delete_message(int which);
 
 /** Reads mssage
   */
-MessageData *get_sms(int which);
+MessageData *get_message(int which);
 
 /** Reads mssages
   */
-MessageData *get_smss(int state = MESSAGE_ALL);
+MessageData *get_messages(int state = MESSAGE_ALL);
 
 /** Sends message
   */
-int send_sms(char *pdu);
+int send_message(char *pdu);
 
 /** Store message
   */
-int put_sms(char *pdu, int state);
+int put_message(char *pdu, int state);
 
 /** Returns SMSC (Short Messages Service Centre)
   */

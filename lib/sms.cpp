@@ -37,7 +37,7 @@
 //TODO:
 //at+cmss
 
-int delete_sms(int which) {
+int delete_message(int which) {
     char buffer[1024];
     char cmd[100];
 
@@ -48,7 +48,7 @@ int delete_sms(int which) {
 	return 1;
 }
 
-MessageData *get_smss(int state = MESSAGE_ALL) {
+MessageData *get_messages(int state = MESSAGE_ALL) {
     char buffer[10000];
     char *data;
     int count = 0;
@@ -96,7 +96,7 @@ MessageData *get_smss(int state = MESSAGE_ALL) {
     return mesg;
 }
 
-MessageData *get_sms(int which) {
+MessageData *get_message(int which) {
     char buffer[10000];
     char *data;
     MessageData *mesg;
@@ -131,7 +131,7 @@ MessageData *get_sms(int which) {
     return mesg;
 }
 
-int send_sms(char *pdu) {
+int send_message(char *pdu) {
     char buffer[10000];
     char cmd[1024];
 	char *pos;
@@ -149,7 +149,7 @@ int send_sms(char *pdu) {
 	}
 }
 
-int put_sms(char *pdu, int state) {
+int put_message(char *pdu, int state) {
     char buffer[10000];
     char cmd[1024];
 	char *pos;
